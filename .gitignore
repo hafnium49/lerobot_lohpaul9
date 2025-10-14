@@ -173,9 +173,10 @@ outputs/
 
 # Dev folders
 .cache/*
-*.stl
-*.urdf
-*.xml
-*.part
+
+# SO-101 world files for residual RL:
+# - *.xml and *.stl are REQUIRED (MuJoCo needs them)
+# - *.urdf and *.part are NOT needed (redundant/metadata)
+# Note: Removed global *.xml and *.stl ignore to allow SO-101 assets
 
 test_runs/

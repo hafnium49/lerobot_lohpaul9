@@ -1,0 +1,154 @@
+<mujoco model="so101_paper_square">
+  <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
+  <option timestep="0.00277778" gravity="0 0 -9.81" cone="elliptic"/>
+  <!-- timestep = 1/360 Hz for physics simulation -->
+
+  <default>
+    <geom condim="3" solref="0.005 1" solimp="0.9 0.95 0.001" friction="1 0.1 0.1"/>
+    <joint damping="0.5"/>
+    <position kp="200"/>
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.1 0.1 0.1" rgb2="0.2 0.2 0.2" width="512" height="512"/>
+    <material name="grid" texture="grid" texrepeat="8 8" reflectance="0.2"/>
+    <material name="white" rgba="0.95 0.95 0.95 1"/>
+    <material name="red_tape" rgba="0.8 0.1 0.1 0.3"/>
+    <material name="robot_gray" rgba="0.5 0.5 0.5 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Table/ground plane -->
+    <body name="table" pos="0 0 0">
+      <geom name="table_surface" type="plane" size="1 1 0.1" material="grid" friction="0.30 0.001 0.0001"/>
+      <site name="table_center" pos="0 0 0.001" size="0.01" rgba="0 0 0 0"/>
+    </body>
+
+    <!-- SO-101 Robot (simplified 5 DOF + gripper) -->
+    <body name="robot_base" pos="0 -0.35 0">
+      <!-- Base -->
+      <geom name="base_cylinder" type="cylinder" size="0.06 0.03" rgba="0.3 0.3 0.3 1"/>
+
+      <!-- Joint 1: Shoulder Pan (yaw) -->
+      <body name="link1" pos="0 0 0.06">
+        <joint name="shoulder_pan" type="hinge" axis="0 0 1" range="-180 180" damping="1"/>
+        <geom name="link1_geom" type="capsule" fromto="0 0 0 0 0 0.1" size="0.04" material="robot_gray"/>
+
+        <!-- Joint 2: Shoulder Lift (pitch) -->
+        <body name="link2" pos="0 0 0.1">
+          <joint name="shoulder_lift" type="hinge" axis="0 1 0" range="-90 90" damping="1"/>
+          <geom name="link2_geom" type="capsule" fromto="0 0 0 0.15 0 0.15" size="0.035" material="robot_gray"/>
+
+          <!-- Joint 3: Elbow Flex (pitch) -->
+          <body name="link3" pos="0.15 0 0.15">
+            <joint name="elbow_flex" type="hinge" axis="0 1 0" range="-135 45" damping="0.5"/>
+            <geom name="link3_geom" type="capsule" fromto="0 0 0 0.15 0 0" size="0.03" material="robot_gray"/>
+
+            <!-- Joint 4: Wrist Flex (pitch) -->
+            <body name="link4" pos="0.15 0 0">
+              <joint name="wrist_flex" type="hinge" axis="0 1 0" range="-90 90" damping="0.2"/>
+              <geom name="link4_geom" type="cylinder" size="0.025 0.03" material="robot_gray"/>
+
+              <!-- Joint 5: Wrist Roll (roll) -->
+              <body name="link5" pos="0.06 0 0">
+                <joint name="wrist_roll" type="hinge" axis="1 0 0" range="-180 180" damping="0.1"/>
+                <geom name="link5_geom" type="cylinder" size="0.02 0.02" material="robot_gray"/>
+
+                <!-- Gripper -->
+                <body name="gripper_base" pos="0.04 0 0">
+                  <geom name="gripper_base_geom" type="box" size="0.02 0.03 0.01" material="robot_gray"/>
+
+                  <!-- Left finger -->
+                  <body name="gripper_left" pos="0.02 0.015 0">
+                    <joint name="gripper_left_joint" type="slide" axis="0 1 0" range="0 0.025" damping="0.1"/>
+                    <geom name="gripper_left_geom" type="box" size="0.015 0.005 0.008" material="robot_gray"/>
+                  </body>
+
+                  <!-- Right finger -->
+                  <body name="gripper_right" pos="0.02 -0.015 0">
+                    <joint name="gripper_right_joint" type="slide" axis="0 1 0" range="-0.025 0" damping="0.1"/>
+                    <geom name="gripper_right_geom" type="box" size="0.015 0.005 0.008" material="robot_gray"/>
+                  </body>
+
+                  <!-- End-effector site -->
+                  <site name="ee_site" pos="0.04 0 0" size="0.005" rgba="0 1 0 0.5"/>
+                  <site name="wrist_site" pos="0 0 0" size="0.005" rgba="0 0 1 0.5"/>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Paper (A5 size: 148mm x 210mm, very thin) -->
+    <body name="paper" pos="0.30 0.0 0.001">
+      <joint name="paper_free" type="free"/>
+      <geom name="paper_geom" type="box"
+            size="0.074 0.105 0.0001"
+            rgba="0.95 0.95 0.95 1"
+            mass="0.005"
+            friction="0.60 0.002 0.0001"
+            condim="3"/>
+      <!-- Corner sites for success detection -->
+      <site name="paper_corner1" pos="0.074 0.105 0" size="0.002" rgba="0 0 1 0.5"/>
+      <site name="paper_corner2" pos="0.074 -0.105 0" size="0.002" rgba="0 0 1 0.5"/>
+      <site name="paper_corner3" pos="-0.074 0.105 0" size="0.002" rgba="0 0 1 0.5"/>
+      <site name="paper_corner4" pos="-0.074 -0.105 0" size="0.002" rgba="0 0 1 0.5"/>
+      <site name="paper_center" pos="0 0 0" size="0.005" rgba="1 1 0 0.5"/>
+    </body>
+
+    <!-- Red tape square target (16cm x 16cm) -->
+    <body name="tape_square" pos="0.55 0.00 0.0005">
+      <geom name="tape_geom" type="box"
+            size="0.08 0.08 0.0002"
+            material="red_tape"
+            contype="0"
+            conaffinity="0"/> <!-- Non-colliding visual marker -->
+      <site name="tape_center" pos="0 0 0.001" size="0.01" rgba="1 0 0 0.5"/>
+    </body>
+
+    <!-- Optional: Small obstacles or visual markers -->
+    <body name="markers" pos="0 0 0">
+      <site name="workspace_origin" pos="0 0 0" size="0.02" rgba="1 0 0 0.3"/>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Position control for robot joints -->
+    <position name="shoulder_pan_act" joint="shoulder_pan" kp="100" forcerange="-20 20"/>
+    <position name="shoulder_lift_act" joint="shoulder_lift" kp="150" forcerange="-30 30"/>
+    <position name="elbow_flex_act" joint="elbow_flex" kp="100" forcerange="-20 20"/>
+    <position name="wrist_flex_act" joint="wrist_flex" kp="50" forcerange="-10 10"/>
+    <position name="wrist_roll_act" joint="wrist_roll" kp="30" forcerange="-5 5"/>
+
+    <!-- Gripper control (coupled) -->
+    <position name="gripper_act" joint="gripper_left_joint" kp="20" forcerange="-5 5"/>
+    <position name="gripper_act_right" joint="gripper_right_joint" kp="20" forcerange="-5 5"/>
+  </actuator>
+
+  <sensor>
+    <!-- Joint position sensors -->
+    <jointpos name="shoulder_pan_pos" joint="shoulder_pan"/>
+    <jointpos name="shoulder_lift_pos" joint="shoulder_lift"/>
+    <jointpos name="elbow_flex_pos" joint="elbow_flex"/>
+    <jointpos name="wrist_flex_pos" joint="wrist_flex"/>
+    <jointpos name="wrist_roll_pos" joint="wrist_roll"/>
+    <jointpos name="gripper_pos" joint="gripper_left_joint"/>
+
+    <!-- Joint velocity sensors -->
+    <jointvel name="shoulder_pan_vel" joint="shoulder_pan"/>
+    <jointvel name="shoulder_lift_vel" joint="shoulder_lift"/>
+    <jointvel name="elbow_flex_vel" joint="elbow_flex"/>
+    <jointvel name="wrist_flex_vel" joint="wrist_flex"/>
+    <jointvel name="wrist_roll_vel" joint="wrist_roll"/>
+    <jointvel name="gripper_vel" joint="gripper_left_joint"/>
+
+    <!-- End-effector position -->
+    <framepos name="ee_pos" objtype="site" objname="ee_site"/>
+
+    <!-- Paper pose -->
+    <framepos name="paper_pos" objtype="body" objname="paper"/>
+    <framequat name="paper_quat" objtype="body" objname="paper"/>
+  </sensor>
+</mujoco>
