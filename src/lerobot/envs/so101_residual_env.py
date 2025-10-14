@@ -78,7 +78,7 @@ class SO101ResidualEnv(gym.Env):
 
         # Default XML path if not provided
         if xml_path is None:
-            xml_path = Path(__file__).parent / "so101_assets" / "paper_square.xml"
+            xml_path = Path(__file__).parent / "so101_assets" / "paper_square_realistic.xml"
 
         # Load MuJoCo model
         self.model = mj.MjModel.from_xml_path(str(xml_path))
@@ -140,10 +140,10 @@ class SO101ResidualEnv(gym.Env):
 
     def _setup_ids(self):
         """Get MuJoCo IDs for joints, bodies, and sites."""
-        # Joint IDs
+        # Joint IDs (official SO-101 uses "gripper" for single coupled gripper joint)
         self.joint_names = [
             "shoulder_pan", "shoulder_lift", "elbow_flex",
-            "wrist_flex", "wrist_roll", "gripper_left_joint"
+            "wrist_flex", "wrist_roll", "gripper"
         ]
         self.joint_ids = [
             mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_JOINT, name)
@@ -387,8 +387,8 @@ class SO101ResidualEnv(gym.Env):
             # Set control
             self.data.ctrl[i] = target_pos
 
-        # Special handling for gripper (coupled fingers)
-        self.data.ctrl[6] = -self.data.ctrl[5]  # Right finger mirrors left
+        # Note: Official SO-101 model has coupled gripper fingers (handled by single actuator)
+        # No need to mirror right finger as in simplified model
 
         # Step physics
         for _ in range(self.frame_skip):

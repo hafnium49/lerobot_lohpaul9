@@ -22,8 +22,8 @@ import mujoco.viewer
 import numpy as np
 from pathlib import Path
 
-# Path to your world
-xml_path = Path("src/lerobot/envs/so101_assets/paper_square.xml")
+# Path to your world (now using official SO-101 model!)
+xml_path = Path("src/lerobot/envs/so101_assets/paper_square_realistic.xml")
 
 print("=" * 60)
 print("SO-101 Paper-Square MuJoCo Viewer")
@@ -51,8 +51,8 @@ print(f"  • Physics timestep: {model.opt.timestep:.6f} s ({1/model.opt.timeste
 # Set robot to a nice initial pose
 mujoco.mj_resetData(model, data)
 
-# Home position for robot
-joint_names = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper_left_joint"]
+# Home position for robot (official SO-101 uses "gripper" not "gripper_left_joint")
+joint_names = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper"]
 home_pos = [0.0, 0.3, -0.6, -np.pi/2, 0.0, 0.005]
 
 for name, pos in zip(joint_names, home_pos):
