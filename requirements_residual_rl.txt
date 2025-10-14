@@ -1,0 +1,34 @@
+# Requirements for SO101 Residual RL System
+# Python 3.10-3.11 recommended
+
+# Core dependencies
+numpy>=1.24.0
+torch>=2.0.0
+
+# MuJoCo simulation
+mujoco>=3.1.0
+# Optional: for interactive viewer
+# mujoco-python-viewer>=0.1.2
+
+# Gymnasium (OpenAI Gym successor)
+gymnasium>=0.29.0
+
+# Reinforcement Learning
+stable-baselines3[extra]>=2.3.0
+
+# Visualization and monitoring
+matplotlib>=3.5.0
+opencv-python>=4.7.0  # For video recording
+tqdm>=4.65.0
+
+# LeRobot dependencies (if not already installed)
+# Uncomment if running standalone:
+# lerobot>=0.1.0
+# hydra-core>=1.3.0
+# omegaconf>=2.3.0
+
+# Optional: Weights & Biases for experiment tracking
+# wandb>=0.15.0
+
+# Optional: For faster parallel environments
+# ray>=2.5.0
