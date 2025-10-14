@@ -125,10 +125,11 @@ class SO101ResidualEnv(gym.Env):
             dtype=np.float32
         )
 
-        # Task parameters
-        self.tape_center = np.array([0.55, 0.0])  # From XML
-        self.tape_half_size = 0.08  # 16cm square
-        self.paper_half_size = np.array([0.074, 0.105])  # A5 paper
+        # Task parameters (updated for centered robot base at floor origin)
+        self.tape_center = np.array([0.275, 0.175])  # From XML (translated)
+        # A5 target frame: 210mm x 148mm (rotated 90°: long edge along X-axis)
+        self.tape_half_size = np.array([0.105, 0.074])  # Half-dimensions (X, Y)
+        self.paper_half_size = np.array([0.074, 0.105])  # A5 paper (X, Y)
 
         # Episode tracking
         self.steps = 0
@@ -191,10 +192,11 @@ class SO101ResidualEnv(gym.Env):
         return corners
 
     def _check_success(self) -> bool:
-        """Check if all paper corners are inside the tape square."""
+        """Check if all paper corners are inside the tape frame (rectangular)."""
         corners = self._get_paper_corners_world()
 
-        # Check if all corners are within tape square bounds (2D check)
+        # Check if all corners are within rectangular tape frame bounds (2D check)
+        # tape_half_size is [half_x, half_y] for the rectangular A5 frame
         tape_min = self.tape_center - self.tape_half_size
         tape_max = self.tape_center + self.tape_half_size
 

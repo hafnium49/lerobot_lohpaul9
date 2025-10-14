@@ -63,13 +63,13 @@ for name, pos in zip(joint_names, home_pos):
     except:
         pass
 
-# Position paper in front of robot
+# Position paper in front of robot (updated for translated system)
 try:
     paper_joint_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "paper_free")
     if paper_joint_id >= 0:
         paper_qpos_addr = model.jnt_qposadr[paper_joint_id]
-        # Position: between robot and target
-        data.qpos[paper_qpos_addr:paper_qpos_addr+3] = [0.30, 0.0, 0.001]
+        # Position: between robot and target (translated system with robot at floor center)
+        data.qpos[paper_qpos_addr:paper_qpos_addr+3] = [0.025, 0.175, 0.001]
         # Orientation: identity quaternion
         data.qpos[paper_qpos_addr+3:paper_qpos_addr+7] = [1, 0, 0, 0]
 except:
