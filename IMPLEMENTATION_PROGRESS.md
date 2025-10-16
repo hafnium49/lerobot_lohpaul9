@@ -173,11 +173,16 @@ residual_joint_deltas(6)  # Residual corrections to base policy
 - [ ] Add table friction jitter ±10%
 - [ ] Create unit tests for DR (`tests/test_so101_env.py`)
 
-#### Phase 3: GR00T IL Stub
-- [ ] Create `src/lerobot/policies/groot_il_stub.py`
-- [ ] Implement modes: "zero", "random", "groot"
-- [ ] Document action space mapping (joint deltas)
-- [ ] Integrate with `SO101ResidualEnv`
+#### Phase 3: GR00T Base Policy Integration
+- [x] Research action dimension mapping ✅
+- [x] Create `src/lerobot/policies/groot_base_policy.py` ✅
+- [x] Create test script `scripts/test_groot_inference.py` ✅
+- [x] Document findings in `docs/GROOT_INTEGRATION.md` ✅
+- [x] Identify loading requirements (Isaac-GR00T package) ✅
+- [ ] Install Isaac-GR00T package (blocked - requires setup)
+- [ ] Test model loading and inference
+- [ ] Validate base policy performance (100 episodes, α=0)
+- [ ] Integrate with `SO101ResidualEnv` if validation successful
 
 #### Phase 4: Evaluation Script
 - [ ] Create `scripts/eval_policy.py`
@@ -258,7 +263,11 @@ residual_joint_deltas(6)  # Residual corrections to base policy
 2. `scripts/train_ppo_quick_test.py` - Quick PPO training test (Phase 1)
 3. `scripts/train_ppo_residual.py` - Full PPO baseline training script (Phase 5)
 4. `scripts/test_train_ppo_residual.py` - Production training test (Phase 5)
-5. `IMPLEMENTATION_PROGRESS.md` - This document
+5. `src/lerobot/policies/groot_base_policy.py` - GR00T N1.5 wrapper (Phase 3)
+6. `scripts/test_groot_inference.py` - GR00T model testing (Phase 3)
+7. `docs/GROOT_INTEGRATION.md` - GR00T integration documentation (Phase 3)
+8. `TRAINING_GUIDE.md` - PPO training guide
+9. `IMPLEMENTATION_PROGRESS.md` - This document
 
 ### Existing (Verified Working)
 1. `src/lerobot/envs/so101_residual_env.py` - Residual RL environment
@@ -388,6 +397,126 @@ Adjust learning rate, entropy coefficient, or action scaling based on initial re
 
 ---
 
+---
+
+## Phase 3 Progress: GR00T Base Policy Integration
+
+**Status:** ⏸️ **RESEARCH COMPLETE - BLOCKED ON ISAAC-GR00T**
+
+### Action Dimension Mapping (RESOLVED) ✅
+
+**Key Discovery:**
+- GR00T does NOT output raw 32D arrays
+- Returns **modality dictionary**:
+  ```python
+  {
+      "action.single_arm": (16, 6),  # 16 timesteps, 6 arm joints
+      "action.gripper": (16, 1),     # 16 timesteps, 1 gripper DOF
+  }
+  ```
+
+**SO-101 Mapping:**
+```python
+# Extract first timestep from 16-step action horizon
+arm_action = outputs["action.single_arm"][0, 0]  # (6,)
+gripper_action = outputs["action.gripper"][0, 0]  # (1,)
+
+# Concatenate for our 6 DOF env
+action = np.concatenate([arm_action[:5], gripper_action])  # (6,)
+```
+
+**32D Explanation:**
+- `max_action_dim=32` is internal padding for multi-embodiment learning
+- Different robots use different slices of 32D space
+- We don't interact with 32D directly - use modality dict instead
+
+### Implementation Status
+
+**Completed:**
+1. ✅ **GR00TBasePolicy wrapper** (`src/lerobot/policies/groot_base_policy.py`)
+   - Modality-based action extraction
+   - Action dimension handling (6D or 7D)
+   - Absolute → relative conversion support
+   - Gripper polarity inversion
+   - Action horizon handling
+
+2. ✅ **Test script** (`scripts/test_groot_inference.py`)
+   - Model loading test
+   - Action format validation
+   - Determinism check
+
+3. ✅ **Comprehensive documentation** (`docs/GROOT_INTEGRATION.md`)
+   - Action mapping explanation
+   - Integration requirements
+   - Sim-to-real considerations
+   - Comparison with zero-action baseline
+
+**Blocked:**
+- ❌ **Model loading** - GR00T N1.5 is custom architecture (`model_type: "gr00t_n1_5"`)
+- ❌ **Not in standard Transformers** - Cannot use `AutoModel.from_pretrained()`
+- ❌ **Requires Isaac-GR00T package** from NVIDIA or Phosphobot inference server
+
+### Error Encountered
+
+```
+ValueError: The checkpoint you are trying to load has model type `gr00t_n1_5`
+but Transformers does not recognize this architecture.
+```
+
+### Next Steps (Options)
+
+**Option 1: Install Isaac-GR00T (Full Integration)**
+```bash
+git clone https://github.com/NVIDIA/Isaac-GR00T.git
+cd Isaac-GR00T && pip install -e .
+python scripts/test_groot_inference.py  # Should work after install
+```
+- Time: 2-3 hours
+- Benefit: Full GR00T integration
+- Risk: Setup complexity
+
+**Option 2: Use Phosphobot Inference Server**
+```bash
+pip install phosphobot
+python -m phosphobot.am.gr00t.serve --model-path phospho-app/gr00t-paper_return-7w9itxzsox
+# Modify GR00TBasePolicy to use client API
+```
+- Time: 3-4 hours
+- Benefit: Cleaner separation
+- Risk: Server overhead
+
+**Option 3: Proceed with Zero-Action Baseline (RECOMMENDED)**
+```bash
+python scripts/train_ppo_residual.py  # Already works!
+```
+- Time: 2-4 hours (compute)
+- Benefit: Immediate results, validates pipeline
+- Provides baseline for GR00T comparison
+- No blockers
+
+### Recommendation
+
+**Run zero-action baseline training first:**
+1. Validates residual RL pipeline works
+2. Establishes baseline metrics for comparison
+3. No setup blockers
+4. Can integrate GR00T later as follow-up
+
+**Expected Results:**
+- Zero-action baseline: 40-70% success (no prior knowledge)
+- With sufficient training: 85-90% success (residual learning compensates)
+- GR00T base (future): Faster convergence, same final performance
+
+### Resources
+
+**Model:** https://huggingface.co/phospho-app/gr00t-paper_return-7w9itxzsox
+**Dataset:** https://huggingface.co/datasets/Hafnium49/paper_return
+**Isaac-GR00T:** https://github.com/NVIDIA/Isaac-GR00T
+**Phosphobot:** https://github.com/phospho-app/phosphobot
+**Documentation:** `docs/GROOT_INTEGRATION.md`
+
+---
+
 **Last Updated:** 2025-10-16
-**Phase:** 1/8 Complete ✅, 5/8 Script Ready ✅
-**Status:** Ready for Full Production Training Run 🚀
+**Phase:** 1/8 Complete ✅, 3/8 Research Complete ⏸️, 5/8 Script Ready ✅
+**Status:** Ready for Zero-Action Baseline Training | GR00T Integration Documented 🚀
