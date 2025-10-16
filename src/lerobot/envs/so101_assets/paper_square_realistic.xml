@@ -2,8 +2,8 @@
 <!-- SO-101 Robot with Paper-Square Task (Official Model) -->
 <mujoco model="so101_paper_square_realistic">
   <compiler angle="radian" meshdir="official_model/assets" autolimits="true"/>
-  <option timestep="0.00277778" gravity="0 0 -9.81" cone="elliptic"/>
-  <!-- timestep = 1/360 Hz for physics simulation -->
+  <option timestep="0.001" gravity="0 0 -9.81" cone="elliptic"/>
+  <!-- timestep = 1/1000 Hz (1ms) for stable physics simulation (improved from 360Hz) -->
 
   <!-- Laboratory workbench lighting -->
   <visual>
@@ -191,12 +191,13 @@
       </body>
     </body>
 
-    <!-- Paper (A5 size: 148mm x 210mm, very thin) -->
+    <!-- Paper (A5 size: 148mm x 210mm, realistic thickness) -->
     <!-- Translated to maintain relative position with robot base at floor center -->
+    <!-- Thickness: 0.15mm (0.000075m) - realistic paper thickness, prevents Z-fighting -->
     <body name="paper" pos="0.025 0.175 0.051">
       <joint name="paper_free" type="free"/>
       <geom name="paper_geom" type="box"
-            size="0.074 0.105 0.0001"
+            size="0.074 0.105 0.000075"
             rgba="0.95 0.95 0.95 1"
             mass="0.005"
             friction="0.60 0.002 0.0001"
@@ -214,6 +215,16 @@
     <!-- Outside dimensions: 250mm x 188mm (A5 + 40mm). Rotated 90°: Long edge parallel to X-axis -->
     <!-- Translated to maintain relative position with robot base at floor center, on floor surface -->
     <body name="tape_square" pos="0.275 0.175 0.001">
+      <!-- Invisible "sticky" contact geom under tape - higher friction than table -->
+      <!-- Makes paper "grab" slightly more when on tape vs table -->
+      <geom name="tape_contact" type="box"
+            size="0.105 0.074 0.00005"
+            pos="0 0 -0.00005"
+            rgba="0 0 0 0"
+            friction="0.9 0.005 0.0005"
+            condim="3"
+            class="task_objects"/>
+
       <!-- Top frame (long edge, parallel to X-axis) -->
       <geom name="frame_top" type="box"
             size="0.125 0.01 0.0001"
