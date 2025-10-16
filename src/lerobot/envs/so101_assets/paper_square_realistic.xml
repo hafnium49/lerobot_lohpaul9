@@ -251,11 +251,12 @@
     </body>
 
     <!-- Camera 1: Top-view camera for GR00T vision input -->
-    <!-- Positioned 400mm above transparent square center, looking straight down -->
+    <!-- Positioned 400mm above transparent square center, looking straight down vertically -->
     <!-- 140° FOV for wide-angle workspace view -->
+    <!-- xyaxes explicitly defines camera orientation: X right, Y forward, Z up (camera looks down) -->
     <camera name="top_view"
             pos="0.275 0.175 0.4"
-            quat="0.707107 0.707107 0 0"
+            xyaxes="1 0 0  0 1 0"
             fovy="140"/>
 
     <!-- Laboratory lighting setup (3-point lighting) -->
