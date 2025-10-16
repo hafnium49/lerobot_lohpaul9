@@ -166,12 +166,12 @@
 
                 <!-- Fixed jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
                 <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
-                <!-- Position: At extreme tip of fixed jaw (~115mm below gripperframe) -->
+                <!-- Position: 7mm below EE site in gripper frame (at actual jaw tip) -->
                 <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                 <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
                 <geom name="fixed_fingertip" type="sphere"
                       class="task_objects"
-                      pos="-0.006 -0.002 -0.115"
+                      pos="-0.0079 -0.000218 -0.1050"
                       size="0.004"
                       material="gripper_rubber"
                       friction="1.0 0.003 0.0001"
@@ -202,12 +202,13 @@
 
                   <!-- Moving jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
                   <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
-                  <!-- Position: At extreme tip of moving jaw (symmetric with fixed jaw in gripper frame) -->
+                  <!-- Position: Computed via inverse rigid transform to coincide with fixed tip when closed -->
+                  <!-- Moving jaw body is rotated 90° about X: local Y→global Z, local Z→global -Y -->
                   <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                   <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
                   <geom name="moving_fingertip" type="sphere"
                         class="task_objects"
-                        pos="0.006 -0.030 -0.096"
+                        pos="-0.0281 -0.0816 0.0190"
                         size="0.004"
                         material="gripper_rubber"
                         friction="1.0 0.003 0.0001"
