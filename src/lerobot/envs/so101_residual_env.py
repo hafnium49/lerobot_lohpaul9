@@ -135,6 +135,22 @@ class SO101ResidualEnv(gym.Env):
         self.steps = 0
         self.max_steps = 400  # ~13 seconds at 30Hz
 
+        # Gripper fingertip IDs for runtime friction control (release hack)
+        self.fixed_fingertip_id = None
+        self.moving_fingertip_id = None
+        self.gripper_base_friction = 1.0  # Normal grasping friction
+        self.gripper_release_friction = 0.6  # Lowered during opening
+        self.gripper_release_threshold = 0.5  # Gripper position threshold for release mode
+
+        # Try to get fingertip geom IDs
+        try:
+            self.fixed_fingertip_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_GEOM, "fixed_fingertip")
+            self.moving_fingertip_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_GEOM, "moving_fingertip")
+            if self.fixed_fingertip_id >= 0 and self.moving_fingertip_id >= 0:
+                print("✅ Gripper fingertips found - release control enabled")
+        except:
+            pass  # Fingertips not available, no problem
+
         # Set random seed if provided
         if seed is not None:
             self.seed(seed)
@@ -205,6 +221,32 @@ class SO101ResidualEnv(gym.Env):
                     tape_min[1] <= corner[1] <= tape_max[1]):
                 return False
         return True
+
+    def _update_gripper_friction(self):
+        """
+        Modulate fingertip friction based on gripper state (release hack).
+
+        When gripper is opening (releasing paper), temporarily lower
+        friction to prevent "glued paper" syndrome. This simulates the
+        natural release behavior of nitrile gloves.
+        """
+        if self.fixed_fingertip_id is None or self.moving_fingertip_id is None:
+            return  # Fingertips not available
+        if self.fixed_fingertip_id < 0 or self.moving_fingertip_id < 0:
+            return  # Invalid IDs
+
+        # Get current gripper position (joint 5)
+        gripper_pos = self.data.qpos[self.joint_ids[5]]
+
+        # If gripper is opening (pos > threshold), use release friction
+        if gripper_pos > self.gripper_release_threshold:
+            target_friction = self.gripper_release_friction
+        else:
+            target_friction = self.gripper_base_friction
+
+        # Update friction coefficients (only slide component, keep spin/roll)
+        self.model.geom_friction[self.fixed_fingertip_id, 0] = target_friction
+        self.model.geom_friction[self.moving_fingertip_id, 0] = target_friction
 
     def _compute_reward(
         self,
@@ -332,6 +374,14 @@ class SO101ResidualEnv(gym.Env):
                 friction_scale = self.np_random.uniform(0.8, 1.2)
                 self.model.geom_friction[paper_geom_id] = base_friction * friction_scale
 
+        # Randomize gripper friction (simulates dust/humidity on nitrile gloves)
+        if self.randomize and self.fixed_fingertip_id is not None:
+            if self.fixed_fingertip_id >= 0 and self.moving_fingertip_id >= 0:
+                # Vary base/release friction by ±15%
+                friction_scale = self.np_random.uniform(0.85, 1.15)
+                self.gripper_base_friction = 1.0 * friction_scale
+                self.gripper_release_friction = 0.6 * friction_scale
+
         # Forward dynamics to update derived quantities
         mj.mj_forward(self.model, self.data)
 
@@ -391,6 +441,9 @@ class SO101ResidualEnv(gym.Env):
 
         # Note: Official SO-101 model has coupled gripper fingers (handled by single actuator)
         # No need to mirror right finger as in simplified model
+
+        # Update gripper friction based on state (release hack)
+        self._update_gripper_friction()
 
         # Step physics
         for _ in range(self.frame_skip):
