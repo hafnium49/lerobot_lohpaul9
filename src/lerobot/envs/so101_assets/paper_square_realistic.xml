@@ -164,14 +164,14 @@
                 <geom type="mesh" class="visual" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
                 <geom type="mesh" class="collision" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
 
-                <!-- Fixed jaw fingertip: short capsule pad -->
-                <!-- Nitrile + work glove simulation: high slide friction (μ=1.0), low spin/roll -->
-                <!-- Position: Near jaw tip (~95mm below gripperframe) -->
+                <!-- Fixed jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
+                <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
+                <!-- Position: At extreme tip of fixed jaw (~115mm below gripperframe) -->
                 <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
-                <!-- PHASE B: Change to contype="2" to enable grasping strategies -->
-                <geom name="fixed_fingertip" type="capsule"
+                <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
+                <geom name="fixed_fingertip" type="sphere"
                       class="task_objects"
-                      fromto="-0.008 -0.002 -0.095   -0.004 -0.002 -0.095"
+                      pos="-0.006 -0.002 -0.115"
                       size="0.004"
                       material="gripper_rubber"
                       friction="1.0 0.003 0.0001"
@@ -200,14 +200,14 @@
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
                   <geom type="mesh" class="collision" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
 
-                  <!-- Moving jaw fingertip: symmetric capsule pad -->
-                  <!-- Nitrile + work glove simulation: high slide friction (μ=1.0), low spin/roll -->
-                  <!-- Position: Opposite side, 30mm down Y, 15mm up Z (symmetric with fixed jaw) -->
+                  <!-- Moving jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
+                  <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
+                  <!-- Position: At extreme tip of moving jaw (symmetric with fixed jaw in gripper frame) -->
                   <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
-                  <!-- PHASE B: Change to contype="2" to enable grasping strategies -->
-                  <geom name="moving_fingertip" type="capsule"
+                  <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
+                  <geom name="moving_fingertip" type="sphere"
                         class="task_objects"
-                        fromto="0.008 -0.030 0.015    0.004 -0.030 0.015"
+                        pos="0.006 -0.030 -0.096"
                         size="0.004"
                         material="gripper_rubber"
                         friction="1.0 0.003 0.0001"
