@@ -1,0 +1,75 @@
+[
+  {
+    "repo_id": "Hafnium49/paper_return",
+    "total_frames": 69051,
+    "num_joints": 6,
+    "joint_stats": [
+      {
+        "joint_id": 1,
+        "action_min": -0.5646427869796753,
+        "action_max": 0.6183452010154724,
+        "state_min": -0.5400931239128113,
+        "state_max": 0.5799863338470459,
+        "n_rows": 69051,
+        "action_over_halfpi": 0,
+        "action_over_pi": 0,
+        "pct_action_over_halfpi": 0.0
+      },
+      {
+        "joint_id": 2,
+        "action_min": -0.5707802176475525,
+        "action_max": 1.584989070892334,
+        "state_min": -0.4695127606391907,
+        "state_max": 1.5880578756332397,
+        "n_rows": 69051,
+        "action_over_halfpi": 2,
+        "action_over_pi": 0,
+        "pct_action_over_halfpi": 0.0029
+      },
+      {
+        "joint_id": 3,
+        "action_min": -1.9286847114562988,
+        "action_max": 1.1323542594909668,
+        "state_min": -1.6770504713058472,
+        "state_max": 1.1170107126235962,
+        "n_rows": 69051,
+        "action_over_halfpi": 301,
+        "action_over_pi": 0,
+        "pct_action_over_halfpi": 0.4359
+      },
+      {
+        "joint_id": 4,
+        "action_min": -0.34522995352745056,
+        "action_max": 1.847363829612732,
+        "state_min": -0.28539010882377625,
+        "state_max": 1.7752491235733032,
+        "n_rows": 69051,
+        "action_over_halfpi": 872,
+        "action_over_pi": 0,
+        "pct_action_over_halfpi": 1.2628
+      },
+      {
+        "joint_id": 5,
+        "action_min": -2.8600385189056396,
+        "action_max": -0.22555024921894073,
+        "state_min": -2.8492980003356934,
+        "state_max": -0.23475638031959534,
+        "n_rows": 69051,
+        "action_over_halfpi": 56765,
+        "action_over_pi": 0,
+        "pct_action_over_halfpi": 82.2074
+      },
+      {
+        "joint_id": 6,
+        "action_min": -0.013809198513627052,
+        "action_max": 0.07211470603942871,
+        "state_min": 0.021480975672602654,
+        "state_max": 0.06597728282213211,
+        "n_rows": 69051,
+        "action_over_halfpi": 0,
+        "action_over_pi": 0,
+        "pct_action_over_halfpi": 0.0
+      }
+    ]
+  }
+]

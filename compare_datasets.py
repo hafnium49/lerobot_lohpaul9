@@ -20,18 +20,37 @@ def analyze_joint_ranges(repo_id):
     print(f"Analyzing: {repo_id}")
     print(f"{'='*80}")
 
-    # Load dataset
+    # Load dataset - try LeRobot format first
     print("Loading dataset...")
-    ds = load_dataset(repo_id, split="train")
+    try:
+        from lerobot.datasets.lerobot_dataset import LeRobotDataset
+        ds = LeRobotDataset(repo_id)
 
-    print(f"Total frames: {len(ds)}")
+        # Access the underlying HF dataset
+        hf_ds = ds.hf_dataset
+        print(f"Total frames: {len(hf_ds)}")
 
-    # Extract state and action data
-    states = np.array(ds['observation.state'])
-    actions = np.array(ds['action'])
+        # Extract state and action data
+        states = np.array(hf_ds['observation.state'])
+        actions = np.array(hf_ds['action'])
+        n_rows = len(hf_ds)
+    except Exception as e:
+        print(f"LeRobot format failed, trying HuggingFace datasets: {e}")
+        # Fallback to regular HF datasets
+        ds = load_dataset(repo_id, split="train")
+        print(f"Total frames: {len(ds)}")
+
+        # Check if columns exist
+        if 'observation.state' not in ds.column_names or 'action' not in ds.column_names:
+            print(f"ERROR: Required columns not found. Available columns: {ds.column_names}")
+            raise ValueError(f"Dataset {repo_id} does not have observation.state and action columns")
+
+        # Extract state and action data
+        states = np.array(ds['observation.state'])
+        actions = np.array(ds['action'])
+        n_rows = len(ds)
 
     num_joints = states.shape[1]
-    n_rows = len(ds)
 
     print(f"Number of joints: {num_joints}\n")
 
