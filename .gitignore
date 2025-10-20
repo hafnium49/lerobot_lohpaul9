@@ -180,3 +180,5 @@ outputs/
 # Note: Removed global *.xml and *.stl ignore to allow SO-101 assets
 
 test_runs/
+git-lfs-3.5.1/
+*.tar.gz
