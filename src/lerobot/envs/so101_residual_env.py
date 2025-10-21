@@ -179,6 +179,38 @@ class SO101ResidualEnv(gym.Env):
             for i in range(1, 5)
         ]
 
+        # Geom IDs for contact detection
+        self._setup_contact_geom_ids()
+
+    def _setup_contact_geom_ids(self):
+        """Setup geom IDs for contact-based reward shaping."""
+        # Get all robot collision geom IDs (for table contact penalty)
+        # Exclude fingertips - they're allowed to contact
+        self.robot_collision_geom_ids = []
+        robot_body_names = ["shoulder", "upper_arm", "lower_arm", "wrist", "gripper", "moving_jaw_so101_v1"]
+
+        for geom_id in range(self.model.ngeom):
+            geom_name = mj.mj_id2name(self.model, mj.mjtObj.mjOBJ_GEOM, geom_id) or ""
+
+            # Only consider geoms with collision enabled (contype > 0)
+            # Exclude fingertips from penalty
+            if (self.model.geom_contype[geom_id] > 0 and
+                self.model.geom_group[geom_id] == 0 and
+                "fingertip" not in geom_name):
+
+                body_id = self.model.geom_bodyid[geom_id]
+                body_name = mj.mj_id2name(self.model, mj.mjtObj.mjOBJ_BODY, body_id) or ""
+
+                # Only robot bodies (not table, paper, etc)
+                if body_name in robot_body_names:
+                    self.robot_collision_geom_ids.append(geom_id)
+
+        # Get table geom ID
+        self.table_geom_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_GEOM, "table_surface")
+
+        # Fingertip geom IDs (already retrieved in __init__, but store references here too)
+        # These are used for positive reward when contacting paper
+
     def _get_obs(self) -> np.ndarray:
         """Get current observation vector."""
         # Joint positions and velocities
@@ -249,6 +281,53 @@ class SO101ResidualEnv(gym.Env):
         self.model.geom_friction[self.fixed_fingertip_id, 0] = target_friction
         self.model.geom_friction[self.moving_fingertip_id, 0] = target_friction
 
+    def _detect_contacts(self) -> dict:
+        """
+        Detect various contact types from MuJoCo contact buffer.
+
+        Returns:
+            dict with:
+                - robot_table_contact: bool (any robot part touching table)
+                - robot_paper_contact: bool (robot arm touching paper, excluding fingertips)
+                - fingertip_paper_contact: bool (fingertips touching paper)
+        """
+        robot_table = False
+        robot_paper = False
+        fingertip_paper = False
+
+        # Iterate through all active contacts
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+            geom1 = contact.geom1
+            geom2 = contact.geom2
+
+            # Robot-table contact (bad - arm slamming into table)
+            if ((geom1 in self.robot_collision_geom_ids and geom2 == self.table_geom_id) or
+                (geom2 in self.robot_collision_geom_ids and geom1 == self.table_geom_id)):
+                robot_table = True
+
+            # Get paper geoms (all geoms attached to paper body)
+            paper_geom1 = self.model.geom_bodyid[geom1] == self.paper_body_id
+            paper_geom2 = self.model.geom_bodyid[geom2] == self.paper_body_id
+
+            # Robot-paper contact (bad - unintended disturbance from arm)
+            if ((geom1 in self.robot_collision_geom_ids and paper_geom2) or
+                (geom2 in self.robot_collision_geom_ids and paper_geom1)):
+                robot_paper = True
+
+            # Fingertip-paper contact (good - intentional manipulation)
+            # Check if fingertips are enabled (contype > 0)
+            if self.fixed_fingertip_id is not None and self.moving_fingertip_id is not None:
+                if ((geom1 in [self.fixed_fingertip_id, self.moving_fingertip_id] and paper_geom2) or
+                    (geom2 in [self.fixed_fingertip_id, self.moving_fingertip_id] and paper_geom1)):
+                    fingertip_paper = True
+
+        return {
+            "robot_table_contact": robot_table,
+            "robot_paper_contact": robot_paper,
+            "fingertip_paper_contact": fingertip_paper,
+        }
+
     def _compute_reward(
         self,
         action: np.ndarray,
@@ -302,6 +381,34 @@ class SO101ResidualEnv(gym.Env):
         time_penalty = -0.01
         reward += time_penalty
         reward_info["time_penalty"] = time_penalty
+
+        # Contact-based reward shaping
+        contacts = self._detect_contacts()
+
+        # Robot-table contact penalty (discourage arm slamming into table)
+        if contacts["robot_table_contact"]:
+            table_penalty = -0.5  # Moderate penalty per timestep
+            reward += table_penalty
+            reward_info["table_contact_penalty"] = table_penalty
+        else:
+            reward_info["table_contact_penalty"] = 0.0
+
+        # Robot-paper contact penalty (discourage unintended disturbances)
+        # This is for arm parts other than fingertips touching the paper
+        if contacts["robot_paper_contact"]:
+            unwanted_contact_penalty = -0.2
+            reward += unwanted_contact_penalty
+            reward_info["unwanted_paper_contact_penalty"] = unwanted_contact_penalty
+        else:
+            reward_info["unwanted_paper_contact_penalty"] = 0.0
+
+        # Fingertip-paper contact reward (encourage intentional manipulation)
+        if contacts["fingertip_paper_contact"]:
+            fingertip_reward = +0.1  # Small positive reward for contact
+            reward += fingertip_reward
+            reward_info["fingertip_contact_reward"] = fingertip_reward
+        else:
+            reward_info["fingertip_contact_reward"] = 0.0
 
         reward_info["total_reward"] = reward
         reward_info["dist_to_goal"] = dist_to_goal

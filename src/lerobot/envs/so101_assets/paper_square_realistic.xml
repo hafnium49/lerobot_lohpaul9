@@ -22,7 +22,7 @@
         <geom type="mesh" contype="0" conaffinity="0" group="2"/>
       </default>
       <default class="collision">
-        <geom group="3" contype="1" conaffinity="1"/>
+        <geom group="0" contype="1" conaffinity="2"/>
       </default>
     </default>
     <default class="sts3215">
@@ -176,7 +176,7 @@
                       size="0.004"
                       material="gripper_rubber"
                       friction="1.0 0.003 0.0001"
-                      contype="0"
+                      contype="2"
                       conaffinity="2"/>
 
                 <!-- Camera 2: Wrist-mounted camera for GR00T egocentric vision -->
@@ -213,7 +213,7 @@
                         size="0.004"
                         material="gripper_rubber"
                         friction="1.0 0.003 0.0001"
-                        contype="0"
+                        contype="2"
                         conaffinity="2"/>
                 </body>
               </body>
