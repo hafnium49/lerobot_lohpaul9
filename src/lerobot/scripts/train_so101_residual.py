@@ -29,6 +29,8 @@ from typing import Optional
 import gymnasium as gym
 import numpy as np
 import torch
+import wandb
+from dotenv import load_dotenv
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import (
     BaseCallback,
@@ -39,6 +41,7 @@ from stable_baselines3.common.callbacks import (
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
+from wandb.integration.sb3 import WandbCallback
 
 # Import our custom environment and policies
 from lerobot.envs.so101_base_policy import (
@@ -48,6 +51,9 @@ from lerobot.envs.so101_base_policy import (
     ZeroPolicy,
 )
 from lerobot.envs.so101_residual_env import SO101ResidualEnv
+
+# Load environment variables (including WANDB_API_KEY)
+load_dotenv()
 
 
 class ResidualRLCallback(BaseCallback):
@@ -195,6 +201,32 @@ def train_residual_rl(args):
 
     base_policy = create_base_policy(args.base_policy, **base_policy_kwargs)
 
+    # Initialize Weights & Biases
+    wandb.init(
+        project="so101-residual-rl",
+        name=exp_name,
+        config={
+            "base_policy": args.base_policy,
+            "alpha": args.alpha,
+            "act_scale": args.act_scale,
+            "residual_penalty": args.residual_penalty,
+            "learning_rate": args.learning_rate,
+            "n_envs": args.n_envs,
+            "total_timesteps": args.total_timesteps,
+            "n_steps": args.n_steps,
+            "batch_size": args.batch_size,
+            "hidden_size": args.hidden_size,
+            "n_layers": args.n_layers,
+            "seed": args.seed,
+            "gamma": args.gamma,
+            "gae_lambda": args.gae_lambda,
+            "ent_coef": args.ent_coef,
+        },
+        sync_tensorboard=True,  # Also sync TensorBoard logs
+        monitor_gym=True,
+        save_code=True,
+    )
+
     # Create vectorized training environments
     print(f"Creating {args.n_envs} parallel environments...")
     env_kwargs = {
@@ -298,6 +330,14 @@ def train_residual_rl(args):
     residual_callback = ResidualRLCallback(verbose=1)
     callbacks.append(residual_callback)
 
+    # W&B callback for experiment tracking
+    wandb_callback = WandbCallback(
+        model_save_freq=args.save_freq,
+        model_save_path=str(output_dir / "wandb_models"),
+        verbose=2,
+    )
+    callbacks.append(wandb_callback)
+
     callback_list = CallbackList(callbacks)
 
     # Train the model
@@ -340,6 +380,9 @@ def train_residual_rl(args):
             f.write(f"{key}: {value}\n")
 
     print(f"\nTraining complete! Results saved to: {output_dir}")
+
+    # Finish wandb run
+    wandb.finish()
 
     # Clean up
     env.close()
