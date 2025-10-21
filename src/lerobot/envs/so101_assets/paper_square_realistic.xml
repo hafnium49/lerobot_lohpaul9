@@ -77,8 +77,9 @@
 
   <worldbody>
     <!-- Table/ground plane -->
+    <!-- Low friction (μ=0.20) for smooth paper sliding -->
     <body name="table" pos="0 0 0">
-      <geom name="table_surface" type="plane" size="1 1 0.1" material="matte_black" friction="0.30 0.001 0.00005" contype="2" conaffinity="2" class="task_objects"/>
+      <geom name="table_surface" type="plane" size="1 1 0.1" material="matte_black" friction="0.20 0.001 0.00005" contype="2" conaffinity="2" class="task_objects"/>
       <site name="table_center" pos="0 0 0.001" size="0.01" rgba="0 0 0 0"/>
     </body>
 
@@ -166,7 +167,7 @@
                 <geom type="mesh" class="collision" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
 
                 <!-- Fixed jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
-                <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
+                <!-- VERY HIGH slide friction (μ=2.0) for firm grip on paper, low spin/roll for realistic physics -->
                 <!-- Position: 7mm below EE site in gripper frame (at actual jaw tip) -->
                 <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                 <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
@@ -175,7 +176,7 @@
                       pos="-0.0079 -0.000218 -0.1050"
                       size="0.008"
                       material="gripper_rubber"
-                      friction="1.0 0.003 0.0001"
+                      friction="2.0 0.003 0.0001"
                       contype="2"
                       conaffinity="2"/>
 
@@ -202,7 +203,7 @@
                   <geom type="mesh" class="collision" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
 
                   <!-- Moving jaw fingertip: Extrema-based calibration from STL geometry -->
-                  <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
+                  <!-- VERY HIGH slide friction (μ=2.0) for firm grip on paper, low spin/roll for realistic physics -->
                   <!-- Position: MIN Y extremum, outermost surface point (extends outside gripper body) -->
                   <!-- Method: Opposite end from hinge, MAX Z among MIN Y vertices for surface contact -->
                   <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
@@ -212,7 +213,7 @@
                         pos="-0.0113 -0.08192077 0.01951059"
                         size="0.008"
                         material="gripper_rubber"
-                        friction="1.0 0.003 0.0001"
+                        friction="2.0 0.003 0.0001"
                         contype="2"
                         conaffinity="2"/>
                 </body>
@@ -226,13 +227,14 @@
     <!-- Paper (A5 size: 148mm x 210mm, solver-friendly thickness) -->
     <!-- Translated to maintain relative position with robot base at floor center -->
     <!-- Thickness: 0.5mm (0.0005m) - solver-friendly, no visual difference, prevents chatter -->
+    <!-- Low friction (μ=0.15) for easy sliding on table, allows fingertip grip dominance -->
     <body name="paper" pos="0.025 0.175 0.001">
       <joint name="paper_free" type="free"/>
       <geom name="paper_geom" type="box"
             size="0.105 0.1485 0.0005"
             rgba="0.95 0.95 0.95 1"
             mass="0.005"
-            friction="0.60 0.001 0.00005"
+            friction="0.15 0.001 0.00005"
             condim="3"
             contype="1"
             conaffinity="2"

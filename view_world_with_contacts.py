@@ -122,11 +122,16 @@ def detect_contacts(data, model):
     robot_paper = []
     fingertip_paper = []
 
-    # Iterate through all active contacts
-    for i in range(data.ncon):
-        contact = data.contact[i]
-        geom1 = contact.geom1
-        geom2 = contact.geom2
+    # Iterate through all active contacts (with bounds check for thread safety)
+    ncon = min(data.ncon, len(data.contact))
+    for i in range(ncon):
+        try:
+            contact = data.contact[i]
+            geom1 = contact.geom1
+            geom2 = contact.geom2
+        except (IndexError, RuntimeError):
+            # Contact buffer changed during iteration (race condition)
+            continue
 
         # Get geom names for display
         name1 = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom1) or f"geom_{geom1}"
