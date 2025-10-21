@@ -96,6 +96,7 @@ class SO101ResidualEnv(gym.Env):
         self.render_mode = render_mode
         self.camera_name = camera_name
         self.viewer = None
+        self.renderer = None
 
         # Get joint and body IDs
         self._setup_ids()
@@ -480,16 +481,14 @@ class SO101ResidualEnv(gym.Env):
     def render(self):
         """Render the environment."""
         if self.render_mode == "rgb_array":
-            # Offscreen rendering
-            camera_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_CAMERA, self.camera_name)
-            if camera_id == -1:
-                camera_id = None  # Use default camera
+            # Offscreen rendering using MuJoCo Renderer
+            if self.renderer is None:
+                self.renderer = mj.Renderer(self.model, height=480, width=640)
 
-            # Render to RGB array
-            rgb = np.zeros((480, 640, 3), dtype=np.uint8)
-            depth = np.zeros((480, 640), dtype=np.float32)
-            mj.mj_renderFrame(self.model, self.data, rgb, depth)
-            return rgb
+            # Update scene and render
+            self.renderer.update_scene(self.data, camera=self.camera_name)
+            pixels = self.renderer.render()
+            return pixels
 
         elif self.render_mode == "human":
             # Interactive viewer (requires mujoco-python-viewer)

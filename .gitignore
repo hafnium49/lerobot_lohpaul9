@@ -181,3 +181,6 @@ outputs/
 
 test_runs/
 runs/
+*.mp4
+debug_*.png
+test_*.png

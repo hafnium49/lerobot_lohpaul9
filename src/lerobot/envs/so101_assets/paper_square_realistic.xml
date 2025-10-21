@@ -78,7 +78,7 @@
   <worldbody>
     <!-- Table/ground plane -->
     <body name="table" pos="0 0 0">
-      <geom name="table_surface" type="plane" size="1 1 0.1" material="matte_black" friction="0.30 0.001 0.00005" conaffinity="2" class="task_objects"/>
+      <geom name="table_surface" type="plane" size="1 1 0.1" material="matte_black" friction="0.30 0.001 0.00005" contype="2" conaffinity="2" class="task_objects"/>
       <site name="table_center" pos="0 0 0.001" size="0.01" rgba="0 0 0 0"/>
     </body>
 
@@ -226,7 +226,7 @@
     <!-- Paper (A5 size: 148mm x 210mm, solver-friendly thickness) -->
     <!-- Translated to maintain relative position with robot base at floor center -->
     <!-- Thickness: 0.5mm (0.0005m) - solver-friendly, no visual difference, prevents chatter -->
-    <body name="paper" pos="0.025 0.175 0.051">
+    <body name="paper" pos="0.025 0.175 0.001">
       <joint name="paper_free" type="free"/>
       <geom name="paper_geom" type="box"
             size="0.105 0.1485 0.0005"
