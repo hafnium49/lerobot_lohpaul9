@@ -164,15 +164,14 @@
                 <geom type="mesh" class="visual" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
                 <geom type="mesh" class="collision" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
 
-                <!-- Fixed jaw fingertip: PCA-calibrated from wrist_roll_follower STL geometry -->
+                <!-- Fixed jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
                 <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
-                <!-- Position: Computed via PCA on fingertip contact patch (STL-driven, geometry-accurate) -->
+                <!-- Position: 7mm below EE site in gripper frame (at actual jaw tip) -->
                 <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                 <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
-                <site name="tip_fixed_pca" pos="0.002582 0.000182 -0.052061" quat="0.610481 -0.017572 0.791635 0.017820" size="0.003" rgba="0 1 0 0.6"/>
                 <geom name="fixed_fingertip" type="sphere"
                       class="task_objects"
-                      pos="0.006445 0.000380 -0.053077"
+                      pos="-0.0079 -0.000218 -0.1050"
                       size="0.004"
                       material="gripper_rubber"
                       friction="1.0 0.003 0.0001"
@@ -201,16 +200,15 @@
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
                   <geom type="mesh" class="collision" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
 
-                  <!-- Moving jaw fingertip: PCA-calibrated from moving_jaw STL geometry -->
+                  <!-- Moving jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
                   <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
-                  <!-- Position: Computed via PCA on fingertip contact patch (STL-driven, geometry-accurate) -->
+                  <!-- Position: Computed via inverse rigid transform to coincide with fixed tip when closed -->
                   <!-- Moving jaw body is rotated 90° about X: local Y→global Z, local Z→global -Y -->
                   <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                   <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
-                  <site name="tip_moving_pca" pos="0.000012 -0.030195 0.013958" quat="0.554267 -0.498212 -0.504586 0.435850" size="0.003" rgba="0 1 0 0.6"/>
                   <geom name="moving_fingertip" type="sphere"
                         class="task_objects"
-                        pos="-0.003963 -0.029745 0.013936"
+                        pos="-0.0281 -0.0816 0.0190"
                         size="0.004"
                         material="gripper_rubber"
                         friction="1.0 0.003 0.0001"
