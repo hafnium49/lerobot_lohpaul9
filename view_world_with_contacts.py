@@ -23,10 +23,12 @@ Real-Time Feedback:
     - 🔴 RED: Robot-table contact (BAD - -0.5 penalty)
 """
 
+import threading
 import time
 from pathlib import Path
 
 import mujoco
+import mujoco.viewer
 import numpy as np
 
 # ANSI color codes for terminal output
@@ -240,15 +242,16 @@ prev_contacts = {
     "fingertip_paper": [],
 }
 
-# Launch viewer in passive mode
-with mujoco.viewer.launch_passive(model, data) as viewer:
-    # Simulation loop
+# Use threaded approach for contact detection with standard viewer
+# Contact detection thread
+detection_running = True
+
+def contact_detection_loop():
+    """Background thread that monitors contacts while viewer runs."""
+    global prev_contacts, detection_running
     step_count = 0
 
-    while viewer.is_running():
-        # Step physics
-        mujoco.mj_step(model, data)
-
+    while detection_running:
         # Detect contacts every 10 steps (reduce terminal spam)
         if step_count % 10 == 0:
             contacts = detect_contacts(data, model)
@@ -294,12 +297,19 @@ with mujoco.viewer.launch_passive(model, data) as viewer:
             # Update previous state
             prev_contacts = contacts
 
-        # Sync viewer
-        viewer.sync()
-
         step_count += 1
+        time.sleep(0.01)  # Check every 10ms
 
-        # Small sleep to prevent busy loop
-        time.sleep(0.001)
+# Start contact detection thread
+detection_thread = threading.Thread(target=contact_detection_loop, daemon=True)
+detection_thread.start()
 
-print(f"\n{Colors.CYAN}✅ Viewer closed normally.{Colors.RESET}")
+# Launch viewer (blocking call)
+try:
+    mujoco.viewer.launch(model, data)
+    print(f"\n{Colors.CYAN}✅ Viewer closed normally.{Colors.RESET}")
+except KeyboardInterrupt:
+    print(f"\n{Colors.CYAN}⚠️  Interrupted by user (Ctrl+C){Colors.RESET}")
+finally:
+    detection_running = False
+    detection_thread.join(timeout=1)
