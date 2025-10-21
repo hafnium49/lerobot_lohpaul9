@@ -202,13 +202,13 @@
 
                   <!-- Moving jaw fingertip: Extrema-based calibration from STL geometry -->
                   <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
-                  <!-- Position: MAX Y extremum from mesh (16 vertices = single fingertip point) -->
-                  <!-- Method: Longest dimension (Y=92mm) + fewer vertices at extremum = tip -->
+                  <!-- Position: MIN Y extremum, outermost surface point (extends outside gripper body) -->
+                  <!-- Method: Opposite end from hinge, MAX Z among MIN Y vertices for surface contact -->
                   <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                   <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
                   <geom name="moving_fingertip" type="sphere"
                         class="task_objects"
-                        pos="0.000100 0.009954 0.018200"
+                        pos="-0.0113 -0.08192077 0.01951059"
                         size="0.004"
                         material="gripper_rubber"
                         friction="1.0 0.003 0.0001"
