@@ -156,6 +156,17 @@ class SO101ResidualEnv(gym.Env):
         if seed is not None:
             self.seed(seed)
 
+        # Potential-based shaping state (for ΔΦ computation)
+        self._phi_prev = 0.0
+        self._prev_goal_dist = None
+        self._inside_frames = 0  # Counter for sustained success
+
+        # Fingertip radius (from XML: both fingertips are 8mm spheres)
+        self.fingertip_radius = 0.008
+
+        # Normalization constants
+        self._D_MAX = np.linalg.norm(self.tape_half_size)  # Max possible distance
+
     def _setup_ids(self):
         """Get MuJoCo IDs for joints, bodies, and sites."""
         # Joint IDs (official SO-101 uses "gripper" for single coupled gripper joint)
@@ -335,83 +346,118 @@ class SO101ResidualEnv(gym.Env):
         paper_pos: np.ndarray
     ) -> tuple[float, dict]:
         """
-        Compute reward for current state and action.
+        Compute reward with potential-based reach shaping + contact-gated progress.
 
-        Returns:
-            reward: Scalar reward
-            info: Dictionary with reward components
+        Based on best-practice manipulation reward design:
+        - Potential-based difference (ΔΦ) for reach incentive
+        - Contact-gated progress to encourage sustained contact
+        - Sustained success requirement (5 frames)
         """
-        # Distance from paper center to tape center
-        dist_to_goal = np.linalg.norm(self.tape_center - paper_pos[:2])
-
-        # Orientation penalty (prefer aligned paper)
-        paper_quat = self.data.xquat[self.paper_body_id]
-        # Convert quaternion to euler angles
-        paper_euler = self._quat_to_euler(paper_quat)
-        orientation_penalty = abs(paper_euler[2])  # Yaw angle
-
-        # Residual magnitude penalty
-        residual_penalty = np.sum(action**2)
-
-        # Compute reward components
-        reward = 0.0
         reward_info = {}
 
-        # Success bonus
-        if success:
-            reward += 10.0
-            reward_info["success_bonus"] = 10.0
+        # === 1. REACH INCENTIVE (Potential-based difference ΔΦ) ===
+        # Get fingertip positions and distances to paper
+        p_fixed = self._geom_pos("fixed_fingertip")
+        p_moving = self._geom_pos("moving_fingertip")
 
-        # Distance shaping (negative reward, closer is better)
-        dist_reward = -2.0 * dist_to_goal
-        reward += dist_reward
+        d_fixed = self._dist_to_paper_aabb(p_fixed)
+        d_moving = self._dist_to_paper_aabb(p_moving)
+        d_reach = min(d_fixed, d_moving)  # Closest fingertip
+
+        # Exponential potential: Φ = exp(-d/τ)
+        tau = 0.03  # 30mm decay length
+        phi_now = np.exp(-d_reach / tau)
+        reach_bonus = 0.8 * (phi_now - self._phi_prev)
+        self._phi_prev = phi_now
+
+        reward_info["reach_bonus"] = reach_bonus
+        reward_info["d_reach"] = d_reach
+
+        # === 2. CONTACT DETECTION (geometric approximation) ===
+        contact_eps = 0.001  # 1mm slack for numerical stability
+        in_contact = (d_reach <= (self.fingertip_radius + contact_eps))
+        reward_info["in_contact"] = float(in_contact)
+
+        # === 3. CONTACT-GATED PROGRESS (paper moves toward goal) ===
+        dist_to_goal = np.linalg.norm(self.tape_center - paper_pos[:2])
+
+        if self._prev_goal_dist is None:
+            self._prev_goal_dist = dist_to_goal
+
+        progress = self._prev_goal_dist - dist_to_goal
+        progress = np.clip(progress, -0.01, 0.01)  # Limit per-step progress
+        self._prev_goal_dist = dist_to_goal
+
+        # Only reward progress when in contact
+        push_reward = (1.5 * progress) if in_contact else 0.0
+        reward_info["push_reward"] = push_reward
+        reward_info["progress"] = progress
+
+        # === 4. GOAL DISTANCE (normalized) ===
+        dist_reward = -2.0 * (dist_to_goal / self._D_MAX)
         reward_info["dist_reward"] = dist_reward
+        reward_info["dist_to_goal"] = dist_to_goal
 
-        # Orientation shaping
-        ori_reward = -0.1 * orientation_penalty
-        reward += ori_reward
+        # === 5. ORIENTATION (normalized by π/2) ===
+        paper_quat = self.data.xquat[self.paper_body_id]
+        paper_euler = self._quat_to_euler(paper_quat)
+        orientation_error = abs(paper_euler[2])  # Yaw
+        ori_reward = -0.5 * (orientation_error / (np.pi / 2))
         reward_info["ori_reward"] = ori_reward
+        reward_info["orientation_error"] = orientation_error
 
-        # Residual penalty
-        res_penalty = -self.residual_penalty * residual_penalty
-        reward += res_penalty
+        # === 6. RESIDUAL PENALTY (scale-invariant) ===
+        res_penalty = -self.residual_penalty * float(np.mean((action / 1.0)**2))
         reward_info["residual_penalty"] = res_penalty
 
-        # Time penalty (small, encourages efficiency)
-        time_penalty = -0.01
-        reward += time_penalty
+        # === 7. TIME PENALTY (only when stalling) ===
+        time_penalty = -0.005 if progress <= 0.0 else 0.0
         reward_info["time_penalty"] = time_penalty
 
-        # Contact-based reward shaping
+        # === 8. SUSTAINED SUCCESS (require 5 frames inside) ===
+        if success:
+            self._inside_frames += 1
+        else:
+            self._inside_frames = 0
+
+        success_hold = (self._inside_frames >= 5)
+        success_bonus = 8.0 if success_hold else 0.0
+        reward_info["success_bonus"] = success_bonus
+        reward_info["inside_frames"] = self._inside_frames
+
+        # === 9. CONTACT PENALTIES (existing logic) ===
         contacts = self._detect_contacts()
 
-        # Robot-table contact penalty (discourage arm slamming into table)
+        # Robot-table contact penalty
         if contacts["robot_table_contact"]:
-            table_penalty = -0.5  # Moderate penalty per timestep
-            reward += table_penalty
+            table_penalty = -0.5
             reward_info["table_contact_penalty"] = table_penalty
         else:
+            table_penalty = 0.0
             reward_info["table_contact_penalty"] = 0.0
 
-        # Robot-paper contact penalty (discourage unintended disturbances)
-        # This is for arm parts other than fingertips touching the paper
+        # Robot-paper contact penalty (arm, not fingertips)
         if contacts["robot_paper_contact"]:
-            unwanted_contact_penalty = -0.2
-            reward += unwanted_contact_penalty
-            reward_info["unwanted_paper_contact_penalty"] = unwanted_contact_penalty
+            unwanted_penalty = -0.2
+            reward_info["unwanted_paper_contact_penalty"] = unwanted_penalty
         else:
+            unwanted_penalty = 0.0
             reward_info["unwanted_paper_contact_penalty"] = 0.0
 
-        # Fingertip-paper contact reward (encourage intentional manipulation)
-        if contacts["fingertip_paper_contact"]:
-            fingertip_reward = +0.1  # Small positive reward for contact
-            reward += fingertip_reward
-            reward_info["fingertip_contact_reward"] = fingertip_reward
-        else:
-            reward_info["fingertip_contact_reward"] = 0.0
+        # === TOTAL REWARD ===
+        reward = (
+            success_bonus +
+            dist_reward +
+            ori_reward +
+            reach_bonus +
+            push_reward +
+            res_penalty +
+            time_penalty +
+            table_penalty +
+            unwanted_penalty
+        )
 
         reward_info["total_reward"] = reward
-        reward_info["dist_to_goal"] = dist_to_goal
 
         return reward, reward_info
 
@@ -434,6 +480,26 @@ class SO101ResidualEnv(gym.Env):
         yaw = np.arctan2(siny_cosp, cosy_cosp)
 
         return np.array([roll, pitch, yaw])
+
+    def _geom_pos(self, name: str) -> np.ndarray:
+        """Get world position of a geom by name."""
+        gid = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_GEOM, name)
+        return self.data.geom_xpos[gid].copy()
+
+    def _dist_to_paper_aabb(self, p: np.ndarray) -> float:
+        """
+        Compute distance from point p to paper's axis-aligned bounding box.
+        Returns 0.0 when point is inside or touching the paper box.
+        """
+        paper_center = self.data.xpos[self.paper_body_id]
+        # Use updated A5 paper half-sizes
+        half_sizes_3d = np.array([self.paper_half_size[0], self.paper_half_size[1], 0.0005])
+
+        # Vector from paper center to point
+        diff = np.abs(p - paper_center) - half_sizes_3d
+        # Outside distance (0 if inside box)
+        outside = np.maximum(diff, 0.0)
+        return float(np.linalg.norm(outside))
 
     def reset(
         self,
@@ -495,6 +561,11 @@ class SO101ResidualEnv(gym.Env):
 
         # Reset episode counters
         self.steps = 0
+
+        # Reset potential-based shaping state
+        self._phi_prev = 0.0
+        self._prev_goal_dist = None
+        self._inside_frames = 0
 
         # Get initial observation
         obs = self._get_obs()
