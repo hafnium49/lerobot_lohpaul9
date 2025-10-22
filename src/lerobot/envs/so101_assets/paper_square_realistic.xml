@@ -231,7 +231,7 @@
     <body name="paper" pos="0.025 0.175 0.001">
       <joint name="paper_free" type="free"/>
       <geom name="paper_geom" type="box"
-            size="0.105 0.1485 0.0005"
+            size="0.074 0.105 0.0005"
             rgba="0.95 0.95 0.95 1"
             mass="0.005"
             friction="0.15 0.001 0.00005"
