@@ -22,7 +22,7 @@
         <geom type="mesh" contype="0" conaffinity="0" group="2"/>
       </default>
       <default class="collision">
-        <geom group="0" contype="1" conaffinity="2"/>
+        <geom group="3"/>
       </default>
     </default>
     <default class="sts3215">
@@ -77,17 +77,15 @@
 
   <worldbody>
     <!-- Table/ground plane -->
-    <!-- Low friction (μ=0.20) for smooth paper sliding -->
     <body name="table" pos="0 0 0">
-      <geom name="table_surface" type="plane" size="1 1 0.1" material="matte_black" friction="0.20 0.001 0.00005" contype="2" conaffinity="2" class="task_objects"/>
+      <geom name="table_surface" type="plane" size="1 1 0.1" material="matte_black" friction="0.30 0.001 0.00005" conaffinity="2" class="task_objects"/>
       <site name="table_center" pos="0 0 0.001" size="0.01" rgba="0 0 0 0"/>
     </body>
 
-    <!-- SO-101 Robot (official model, positioned OUTSIDE red frame near origin) -->
-    <!-- Base 100mm from closest corner outer edge (toward origin, parallel to long edge) -->
-    <!-- Base 110mm from closest corner outer edge (toward origin, parallel to short edge) -->
-    <!-- Rotated 45° from frame edges (45° CCW around Z-axis) -->
-    <body name="base" pos="0.050 -0.029 0.02" quat="0.9239 0 0 0.3827" childclass="so101_new_calib">
+    <!-- SO-101 Robot (official model, positioned at floor center, rotated to face target) -->
+    <!-- Base at floor center, 20mm above floor (0, 0, 0.02) -->
+    <!-- Rotated ~32.5° CCW around Z-axis to face tape_square -->
+    <body name="base" pos="0 0 0.02" quat="0.9602 0 0 0.2794" childclass="so101_new_calib">
       <inertial pos="0.0137179 -5.19711e-05 0.0334843" mass="0.147" fullinertia="0.000114686 0.000136117 0.000130364 -4.59787e-07 4.97151e-06 9.75275e-08"/>
       <!-- Part base_motor_holder_so101_v1 -->
       <geom type="mesh" class="visual" pos="-0.00636471 -9.94414e-05 -0.0024" quat="0.5 0.5 0.5 0.5" mesh="base_motor_holder_so101_v1" material="base_motor_holder_so101_v1_material"/>
@@ -167,17 +165,17 @@
                 <geom type="mesh" class="collision" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
 
                 <!-- Fixed jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
-                <!-- VERY HIGH slide friction (μ=2.0) for firm grip on paper, low spin/roll for realistic physics -->
+                <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
                 <!-- Position: 7mm below EE site in gripper frame (at actual jaw tip) -->
                 <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                 <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
                 <geom name="fixed_fingertip" type="sphere"
                       class="task_objects"
                       pos="-0.0079 -0.000218 -0.1050"
-                      size="0.008"
+                      size="0.004"
                       material="gripper_rubber"
-                      friction="2.0 0.003 0.0001"
-                      contype="2"
+                      friction="1.0 0.003 0.0001"
+                      contype="0"
                       conaffinity="2"/>
 
                 <!-- Camera 2: Wrist-mounted camera for GR00T egocentric vision -->
@@ -202,19 +200,19 @@
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
                   <geom type="mesh" class="collision" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
 
-                  <!-- Moving jaw fingertip: Extrema-based calibration from STL geometry -->
-                  <!-- VERY HIGH slide friction (μ=2.0) for firm grip on paper, low spin/roll for realistic physics -->
-                  <!-- Position: MIN Y extremum, outermost surface point (extends outside gripper body) -->
-                  <!-- Method: Opposite end from hinge, MAX Z among MIN Y vertices for surface contact -->
+                  <!-- Moving jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
+                  <!-- High slide friction (μ=1.0) for paper contact, low spin/roll for realistic physics -->
+                  <!-- Position: Computed via inverse rigid transform to coincide with fixed tip when closed -->
+                  <!-- Moving jaw body is rotated 90° about X: local Y→global Z, local Z→global -Y -->
                   <!-- PHASE A: contype="0" DISABLED (pushing-only training) -->
                   <!-- PHASE B: Change to contype="2" to enable contact-based strategies -->
                   <geom name="moving_fingertip" type="sphere"
                         class="task_objects"
-                        pos="-0.0113 -0.08192077 0.01951059"
-                        size="0.008"
+                        pos="-0.0281 -0.0816 0.0190"
+                        size="0.004"
                         material="gripper_rubber"
-                        friction="2.0 0.003 0.0001"
-                        contype="2"
+                        friction="1.0 0.003 0.0001"
+                        contype="0"
                         conaffinity="2"/>
                 </body>
               </body>
@@ -227,14 +225,13 @@
     <!-- Paper (A5 size: 148mm x 210mm, solver-friendly thickness) -->
     <!-- Translated to maintain relative position with robot base at floor center -->
     <!-- Thickness: 0.5mm (0.0005m) - solver-friendly, no visual difference, prevents chatter -->
-    <!-- Low friction (μ=0.15) for easy sliding on table, allows fingertip grip dominance -->
-    <body name="paper" pos="0.025 0.175 0.001">
+    <body name="paper" pos="0.025 0.175 0.051">
       <joint name="paper_free" type="free"/>
       <geom name="paper_geom" type="box"
             size="0.105 0.1485 0.0005"
             rgba="0.95 0.95 0.95 1"
             mass="0.005"
-            friction="0.15 0.001 0.00005"
+            friction="0.60 0.001 0.00005"
             condim="3"
             contype="1"
             conaffinity="2"

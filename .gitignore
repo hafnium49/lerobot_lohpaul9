@@ -182,5 +182,8 @@ outputs/
 test_runs/
 git-lfs-3.5.1/
 *.tar.gz
-
 push_to_github.sh
+runs/
+*.mp4
+debug_*.png
+test_*.png
