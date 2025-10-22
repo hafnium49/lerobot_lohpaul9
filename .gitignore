@@ -187,3 +187,5 @@ runs/
 *.mp4
 debug_*.png
 test_*.png
+
+cuda-keyring_1.1-1_all.deb
