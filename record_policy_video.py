@@ -23,7 +23,7 @@ def record_episode_video(
     output_path: str = "policy_video.mp4",
     n_episodes: int = 3,
     deterministic: bool = True,
-    alpha: float = 0.5,
+    alpha: float = 1.0,
     act_scale: float = 0.02,
     seed: int = 42,
     fps: int = 30,
@@ -44,8 +44,8 @@ def record_episode_video(
     print(f"Loading model from {model_path}...")
     model = PPO.load(model_path)
 
-    # Create base policy
-    base_policy = JacobianIKPolicy(max_delta=act_scale)
+    # Create base policy (None for zero policy)
+    base_policy = None
 
     # Create environment with RGB array rendering
     print("Creating environment...")
