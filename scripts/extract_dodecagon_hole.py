@@ -196,16 +196,17 @@ if len(hole_wall_triangles) > 0:
         print(f"    Angles (degrees): {sorted_angles}")
 
         # Check if vertices form regular dodecagon (12 vertices at 30° intervals)
-        if len(sorted_angles) >= 10:
+        mean_diff = None
+        if len(sorted_angles) >= 2:
             angular_diffs = np.diff(sorted_angles)
             mean_diff = angular_diffs.mean()
             print(f"    Mean angular spacing: {mean_diff:.1f}°")
             print(f"    Expected for dodecagon: 30.0°")
 
-            if 25 < mean_diff < 35:
+            if 25 < mean_diff < 35 and len(sorted_angles) >= 10:
                 print(f"    ✅ Shape is consistent with dodecagon!")
             else:
-                print(f"    ⚠️  Shape may not be a regular dodecagon")
+                print(f"    ⚠️  Shape may not be a regular dodecagon (found {len(sorted_angles)} vertices)")
 
 # Create visualization
 print("\nGenerating visualization...")
@@ -349,6 +350,7 @@ ax6 = fig.add_subplot(2, 3, 6)
 ax6.axis('off')
 
 if len(edge_vertices) > 0:
+    mean_spacing_str = f"{mean_diff:.1f}" if mean_diff is not None else "N/A"
     info_text = f"""
 DODECAGON LENS HOLE ANALYSIS
 
@@ -373,7 +375,7 @@ Hole Geometry:
 Angular Distribution:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Vertices: {len(sorted_angles)}
-  Mean spacing: {mean_diff:.1f}°
+  Mean spacing: {mean_spacing_str}°
   Expected (dodecagon): 30.0°
 
 Camera Position:
