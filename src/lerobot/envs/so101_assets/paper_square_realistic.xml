@@ -191,7 +191,7 @@
                 <!-- - Oriented perpendicular to flat mounting surface (65° pitch) -->
                 <!-- - Accounts for 180° rotation of camera mount mesh (quat="0 1 0 0") -->
                 <camera name="wrist_camera"
-                        pos="0.0025 0.0742 0.0038"
+                        pos="0.0024 0.0609 0.0054"
                         axisangle="1.000000 0.000000 0.000000 1.134477"
                         fovy="140"/>
 
