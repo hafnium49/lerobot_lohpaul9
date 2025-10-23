@@ -96,7 +96,7 @@ def evaluate_base_policy(
 
     for episode in range(n_episodes):
         # Reset environment
-        obs_dict = env.reset()
+        obs_dict, reset_info = env.reset()
         episode_return = 0.0
         episode_length = 0
         min_distance = float("inf")
