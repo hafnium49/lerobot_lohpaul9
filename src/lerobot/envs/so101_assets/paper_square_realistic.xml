@@ -183,19 +183,21 @@
                       conaffinity="2"/>
 
                 <!-- Camera 2: Wrist-mounted camera for GR00T egocentric vision -->
-                <!-- Precisely positioned at dodecagon lens hole center with perpendicular orientation -->
+                <!-- Precisely positioned at dodecagon lens hole center facing outward -->
                 <!-- 140° FOV for wide-angle close-up manipulation view -->
-                <!-- Position calculated from dodecagon lens hole geometry analysis: -->
-                <!-- - At center of dodecagon lens hole (28mm diameter) on mounting surface -->
+                <!-- Position: At center of dodecagon lens hole (28mm diameter) -->
                 <!-- - Extracted from STL: hole center [2.5, -61.1, -11.1] mm in STL frame -->
-                <!-- - Oriented along mean cylinder axis of 4 screw holes -->
-                <!-- - Mean axis (STL): [-0.0166, 0.9051, -0.4249] (25.17° from Y-axis) -->
-                <!-- - Mean axis (gripper): [-0.0166, -0.9051, 0.4249] (64.86° from Z-axis) -->
-                <!-- - Individual axes within 5.6° variation (nearly parallel) -->
+                <!-- - Position (gripper): [0.0025, 0.0609, 0.0120] m -->
+                <!-- Orientation: Perpendicular to mounting surface (outward from fixed jaw) -->
+                <!-- - Mounting surface normal (STL): [0.0087, 0.4616, 0.8870] -->
+                <!-- - Mounting surface normal (gripper): [0.0087, -0.4616, -0.8870] -->
+                <!-- - Calculated from 4 screw hole centers forming near-rectangle (30.4×27.6mm) -->
+                <!-- - All holes coplanar within 0.12mm -->
+                <!-- - Rotation: 27.50° around [-0.9998, -0.0189, 0] -->
                 <!-- - Accounts for 180° rotation of camera mount mesh (quat="0 1 0 0") -->
                 <camera name="wrist_camera"
                         pos="0.0025 0.0609 0.0120"
-                        axisangle="-0.999833 0.018297 0.000000 2.009659"
+                        axisangle="-0.999821 -0.018912 -0.000000 0.479911"
                         fovy="140"/>
 
                 <!-- Frame gripperframe -->
