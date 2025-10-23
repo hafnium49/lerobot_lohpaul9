@@ -188,16 +188,17 @@
                 <!-- Position: At center of dodecagon lens hole (28mm diameter) -->
                 <!-- - Extracted from STL: hole center [2.5, -61.1, -11.1] mm in STL frame -->
                 <!-- - Position (gripper): [0.0025, 0.0609, 0.0120] m -->
-                <!-- Orientation: Perpendicular to mounting surface (outward from fixed jaw) -->
+                <!-- Orientation: Perpendicular to mounting surface + 90° CW roll -->
                 <!-- - Mounting surface normal (STL): [0.0087, 0.4616, 0.8870] -->
                 <!-- - Mounting surface normal (gripper): [0.0087, -0.4616, -0.8870] -->
                 <!-- - Calculated from 4 screw hole centers forming near-rectangle (30.4×27.6mm) -->
                 <!-- - All holes coplanar within 0.12mm -->
-                <!-- - Rotation: 27.50° around [-0.9998, -0.0189, 0] -->
+                <!-- - Base rotation: 27.50° around [-0.9998, -0.0189, 0] -->
+                <!-- - Additional 90° CW roll for image rotation -->
                 <!-- - Accounts for 180° rotation of camera mount mesh (quat="0 1 0 0") -->
                 <camera name="wrist_camera"
                         pos="0.0025 0.0609 0.0120"
-                        axisangle="-0.999821 -0.018912 -0.000000 0.479911"
+                        axisangle="-0.235551 0.226805 0.945027 1.627308"
                         fovy="90"/>
 
                 <!-- Frame gripperframe -->
@@ -315,10 +316,10 @@
     <!-- Camera 1: Top-view camera for GR00T vision input -->
     <!-- Positioned 400mm above transparent square center, looking straight down vertically -->
     <!-- 90° FOV for realistic workspace view with minimal distortion -->
-    <!-- xyaxes explicitly defines camera orientation: X right, Y forward, Z up (camera looks down) -->
+    <!-- xyaxes rotated 90° clockwise: X backward, Y right (camera looks down) -->
     <camera name="top_view"
             pos="0.275 0.175 0.4"
-            xyaxes="1 0 0  0 1 0"
+            xyaxes="0 -1 0  1 0 0"
             fovy="90"/>
 
     <!-- Laboratory lighting setup (3-point lighting) -->
