@@ -237,7 +237,37 @@ class GR00TBasePolicy:
         # Case 1: Modality dictionary (expected format)
         if isinstance(outputs, dict):
             try:
-                # Extract modalities
+                # Check if it's the fine-tuned model format (action.arm_0)
+                if "action.arm_0" in outputs:
+                    # Fine-tuned model format: action.arm_0 contains full action
+                    full_action = outputs["action.arm_0"]
+
+                    # Convert to numpy
+                    if isinstance(full_action, torch.Tensor):
+                        full_action = full_action.cpu().numpy()
+
+                    # Handle batch and timestep dimensions
+                    # Expected shape: (batch, 16, 6)
+                    if full_action.ndim == 3:
+                        full_action = full_action[0]  # Remove batch dim → (16, 6)
+
+                    # Use first timestep if action horizon
+                    if self.use_first_timestep and full_action.ndim == 2:
+                        full_action = full_action[0]  # (16, 6) → (6,)
+
+                    logger.debug(f"Full action shape: {full_action.shape}")
+                    logger.debug(f"Full action values: {full_action}")
+
+                    # Return the action as-is (already 6D for SO-101)
+                    action = full_action[:self.expected_action_dim]
+
+                    # Invert gripper polarity if needed
+                    if self.invert_gripper:
+                        action[-1] = action[-1] * -1
+
+                    return action
+
+                # Standard GR00T format: separate arm and gripper
                 arm_action = outputs.get("action.single_arm")
                 gripper_action = outputs.get("action.gripper")
 
