@@ -225,25 +225,23 @@ def visualize_cameras(
             )
             scn.ngeom += 1
 
-    # Launch viewer with custom rendering
+    # Simple approach: just launch the viewer and let user inspect
+    # The viewer will show the robot, and the camera information is printed above
+    print("\nLaunching MuJoCo viewer...")
+    print("Note: Camera markers are not shown in the viewer, but you can:")
+    print("  - Press TAB to cycle through cameras and see their views")
+    print("  - Press '[' to cycle backwards through cameras")
+    print("  - Use mouse to rotate/pan the free camera view")
+    print("  - Refer to the printed positions/directions above")
+    print()
+
+    # Launch viewer
     with mj.viewer.launch_passive(model, data) as v:
         start_time = time.time()
 
         while v.is_running():
             # Step simulation
             mj.mj_step(model, data)
-
-            # Update camera visualization data (in case robot moves)
-            for cam_name in cameras_to_show:
-                if cam_name in all_cameras:
-                    camera_viz_data[cam_name] = add_camera_visualization_geoms(
-                        model, data, cam_name, arrow_length=0.15, arrow_radius=0.005
-                    )
-
-            # Add visual markers to scene
-            with v.lock():
-                v.opt.flags[mj.mjtVisFlag.mjVIS_TRANSPARENT] = True
-                add_visual_markers(v.scn)
 
             # Sync viewer
             v.sync()
