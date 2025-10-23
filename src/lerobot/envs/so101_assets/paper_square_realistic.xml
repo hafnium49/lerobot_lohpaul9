@@ -184,7 +184,7 @@
 
                 <!-- Camera 2: Wrist-mounted camera for GR00T egocentric vision -->
                 <!-- Precisely positioned at dodecagon lens hole center facing outward -->
-                <!-- 140° FOV for wide-angle close-up manipulation view -->
+                <!-- 90° FOV for realistic close-up manipulation view with minimal distortion -->
                 <!-- Position: At center of dodecagon lens hole (28mm diameter) -->
                 <!-- - Extracted from STL: hole center [2.5, -61.1, -11.1] mm in STL frame -->
                 <!-- - Position (gripper): [0.0025, 0.0609, 0.0120] m -->
@@ -198,7 +198,7 @@
                 <camera name="wrist_camera"
                         pos="0.0025 0.0609 0.0120"
                         axisangle="-0.999821 -0.018912 -0.000000 0.479911"
-                        fovy="140"/>
+                        fovy="90"/>
 
                 <!-- Frame gripperframe -->
                 <site group="3" name="gripperframe" pos="-0.0079 -0.000218121 -0.0981274" quat="0.707107 -0 0.707107 -2.37788e-17"/>
@@ -314,12 +314,12 @@
 
     <!-- Camera 1: Top-view camera for GR00T vision input -->
     <!-- Positioned 400mm above transparent square center, looking straight down vertically -->
-    <!-- 140° FOV for wide-angle workspace view -->
+    <!-- 90° FOV for realistic workspace view with minimal distortion -->
     <!-- xyaxes explicitly defines camera orientation: X right, Y forward, Z up (camera looks down) -->
     <camera name="top_view"
             pos="0.275 0.175 0.4"
             xyaxes="1 0 0  0 1 0"
-            fovy="140"/>
+            fovy="90"/>
 
     <!-- Laboratory lighting setup (3-point lighting) -->
     <!-- Main overhead light (centered above workspace) -->
