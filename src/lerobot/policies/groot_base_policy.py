@@ -75,24 +75,92 @@ class GR00TBasePolicy:
         logger.info(f"Device: {device}")
 
         try:
-            from transformers import AutoModel, AutoProcessor
+            from gr00t.model.policy import Gr00tPolicy
+            from gr00t.experiment.data_config import BaseDataConfig, DATA_CONFIG_MAP
+            from gr00t.data.dataset import ModalityConfig
+            from gr00t.data.transform.base import ComposedModalityTransform
+            from gr00t.data.transform.concat import ConcatTransform
+            from gr00t.data.transform.state_action import (
+                StateActionToTensor,
+                StateActionTransform,
+            )
+            from gr00t.data.transform.video import (
+                VideoColorJitter,
+                VideoCrop,
+                VideoResize,
+                VideoToNumpy,
+                VideoToTensor,
+            )
+            from gr00t.model.transforms import GR00TTransform
 
-            self.model = AutoModel.from_pretrained(
-                model_path,
-                trust_remote_code=True,
-            ).to(device)
+            # Create custom data config for fine-tuned model
+            # Model was trained with 'video.image_cam_0' and 'video.image_cam_1' keys
+            class FineTunedSO101DataConfig(BaseDataConfig):
+                video_keys = ["video.image_cam_0", "video.image_cam_1"]
+                state_keys = ["state.arm_0"]
+                action_keys = ["action.arm_0"]
+                language_keys = []
+                observation_indices = [0]
+                action_indices = list(range(16))
 
-            self.processor = AutoProcessor.from_pretrained(
-                model_path,
-                trust_remote_code=True,
+                def transform(self):
+                    # Eval-only transforms (no augmentation for inference)
+                    transforms = [
+                        # video transforms
+                        VideoToTensor(apply_to=self.video_keys),
+                        VideoCrop(apply_to=self.video_keys, scale=0.95),
+                        VideoResize(apply_to=self.video_keys, height=224, width=224, interpolation="linear"),
+                        # Skip VideoColorJitter for eval (augmentation only for training)
+                        VideoToNumpy(apply_to=self.video_keys),
+                        # state transforms (even though we won't use them for inference)
+                        StateActionToTensor(apply_to=self.state_keys),
+                        StateActionTransform(
+                            apply_to=self.state_keys,
+                            normalization_modes={key: "min_max" for key in self.state_keys},
+                        ),
+                        # action transforms (for output processing)
+                        StateActionToTensor(apply_to=self.action_keys),
+                        StateActionTransform(
+                            apply_to=self.action_keys,
+                            normalization_modes={key: "min_max" for key in self.action_keys},
+                        ),
+                        # concat transforms
+                        ConcatTransform(
+                            video_concat_order=self.video_keys,
+                            state_concat_order=self.state_keys,
+                            action_concat_order=self.action_keys,
+                        ),
+                        # model-specific transform (adds image_sizes, etc.)
+                        GR00TTransform(
+                            state_horizon=len(self.observation_indices),
+                            action_horizon=len(self.action_indices),
+                            max_state_dim=64,
+                            max_action_dim=32,
+                        ),
+                    ]
+                    return ComposedModalityTransform(transforms=transforms)
+
+            # Use custom config matching fine-tuned model's training data
+            data_config = FineTunedSO101DataConfig()
+            modality_config = data_config.modality_config()
+            modality_transform = data_config.transform()
+
+            # Load GR00T policy
+            # Use 'new_embodiment' tag as SO-101 is a custom fine-tuned model
+            self.policy = Gr00tPolicy(
+                model_path=model_path,
+                embodiment_tag="new_embodiment",  # Custom embodiment tag
+                modality_config=modality_config,
+                modality_transform=modality_transform,
+                device=device,
             )
 
-            self.model.eval()  # Set to evaluation mode
-
-            logger.info("✅ GR00T model loaded successfully")
+            logger.info("✅ GR00T policy loaded successfully")
 
         except Exception as e:
-            logger.error(f"Failed to load GR00T model: {e}")
+            logger.error(f"Failed to load GR00T policy: {e}")
+            logger.error("Note: This requires Isaac GR00T package to be installed")
+            logger.error("Install with: cd ~/Isaac-GR00T && pip install -e .[base]")
             raise
 
     def predict(self, image: np.ndarray, current_qpos: Optional[np.ndarray] = None) -> np.ndarray:
@@ -110,20 +178,25 @@ class GR00TBasePolicy:
             ValueError: If action dimensions don't match expected format
         """
 
-        # Preprocess image
+        # Prepare observation dict for GR00T policy
+        # Fine-tuned model expects specific camera keys from training dataset
         try:
-            inputs = self.processor(images=image, return_tensors="pt")
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        except Exception as e:
-            logger.error(f"Image preprocessing failed: {e}")
-            raise
+            # Create observation dict matching model's expected format
+            # Model was trained with 'video.image_cam_0' and 'video.image_cam_1' keys
+            # We provide the same image for both cameras (single-camera setup)
+            # Also need dummy state and action for transforms
+            obs_dict = {
+                "video.image_cam_0": image[np.newaxis, ...],  # Add batch dim: (1, H, W, 3)
+                "video.image_cam_1": image[np.newaxis, ...],  # Duplicate for second camera
+                "state.arm_0": np.zeros((1, 6), dtype=np.float32),  # Dummy state
+                "action.arm_0": np.zeros((1, 6), dtype=np.float32),  # Dummy action
+            }
 
-        # Inference
-        try:
-            with torch.no_grad():
-                outputs = self.model(**inputs)
+            # Get action from policy
+            outputs = self.policy.get_action(obs_dict)
+
         except Exception as e:
-            logger.error(f"Model inference failed: {e}")
+            logger.error(f"GR00T inference failed: {e}")
             raise
 
         # Extract actions from modality-based output

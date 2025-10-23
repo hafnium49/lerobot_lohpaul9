@@ -56,8 +56,11 @@ class SO101ResidualEnv(gym.Env):
         frame_skip: int = 12,  # 360Hz / 30Hz = 12
         randomize: bool = True,
         render_mode: str = None,
-        camera_name: str = "top",
+        camera_name: str = "top_view",
         seed: int = None,
+        use_image_obs: bool = False,
+        image_size: tuple = (224, 224),
+        camera_name_for_obs: str = "top_view",
     ):
         """
         Initialize SO101 residual RL environment.
@@ -73,6 +76,9 @@ class SO101ResidualEnv(gym.Env):
             render_mode: Rendering mode ('human' or 'rgb_array')
             camera_name: Camera to use for rendering
             seed: Random seed
+            use_image_obs: Enable image observations (for GR00T base policy)
+            image_size: Size of rendered images (H, W) for observations
+            camera_name_for_obs: Camera name for image observations
         """
         super().__init__()
 
@@ -98,6 +104,12 @@ class SO101ResidualEnv(gym.Env):
         self.viewer = None
         self.renderer = None
 
+        # Image observation configuration
+        self.use_image_obs = use_image_obs
+        self.image_size = image_size
+        self.camera_name_for_obs = camera_name_for_obs
+        self.obs_renderer = None  # Separate renderer for observations
+
         # Get joint and body IDs
         self._setup_ids()
 
@@ -112,19 +124,43 @@ class SO101ResidualEnv(gym.Env):
             dtype=np.float32
         )
 
-        # Observation space: joint pos/vel + paper pose + goal vector + EE pos
-        obs_dim = (
-            self.n_joints * 2 +  # Joint positions and velocities
-            7 +  # Paper pose (x, y, z, quat)
-            3 +  # Goal vector (paper center to tape center)
-            3    # End-effector position
-        )
-        self.observation_space = Box(
-            low=-np.inf,
-            high=np.inf,
-            shape=(obs_dim,),
-            dtype=np.float32
-        )
+        # Observation space: dual mode (state only or state + image)
+        if use_image_obs:
+            # Dict observation space with both state and image
+            state_dim = (
+                self.n_joints * 2 +  # Joint positions and velocities
+                7 +  # Paper pose (x, y, z, quat)
+                3 +  # Goal vector (paper center to tape center)
+                3    # End-effector position
+            )
+            self.observation_space = Dict({
+                "state": Box(
+                    low=-np.inf,
+                    high=np.inf,
+                    shape=(state_dim,),
+                    dtype=np.float32
+                ),
+                "image": Box(
+                    low=0,
+                    high=255,
+                    shape=(*image_size, 3),
+                    dtype=np.uint8
+                )
+            })
+        else:
+            # State-only observation space (for residual RL policy)
+            obs_dim = (
+                self.n_joints * 2 +  # Joint positions and velocities
+                7 +  # Paper pose (x, y, z, quat)
+                3 +  # Goal vector (paper center to tape center)
+                3    # End-effector position
+            )
+            self.observation_space = Box(
+                low=-np.inf,
+                high=np.inf,
+                shape=(obs_dim,),
+                dtype=np.float32
+            )
 
         # Task parameters (updated for centered robot base at floor origin)
         self.tape_center = np.array([0.275, 0.175])  # From XML (translated)
@@ -222,8 +258,20 @@ class SO101ResidualEnv(gym.Env):
         # Fingertip geom IDs (already retrieved in __init__, but store references here too)
         # These are used for positive reward when contacting paper
 
-    def _get_obs(self) -> np.ndarray:
-        """Get current observation vector."""
+    def _get_obs(self):
+        """Get current observation (state only or state + image)."""
+        # Always compute state observation
+        state_obs = self._get_state_obs()
+
+        if self.use_image_obs:
+            # Render image for observations
+            image = self._render_camera_for_obs()
+            return {"state": state_obs, "image": image}
+        else:
+            return state_obs
+
+    def _get_state_obs(self) -> np.ndarray:
+        """Get state observation vector."""
         # Joint positions and velocities
         qpos = np.array([self.data.qpos[jid] for jid in self.joint_ids])
         qvel = np.array([self.data.qvel[jid] for jid in self.joint_ids])
@@ -243,6 +291,21 @@ class SO101ResidualEnv(gym.Env):
         # Concatenate all observations
         obs = np.concatenate([qpos, qvel, paper_pose, goal_vec, ee_pos])
         return obs.astype(np.float32)
+
+    def _render_camera_for_obs(self) -> np.ndarray:
+        """Render RGB image from observation camera."""
+        # Get camera ID
+        cam_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_CAMERA, self.camera_name_for_obs)
+
+        # Create renderer if needed (separate from display renderer)
+        if self.obs_renderer is None:
+            self.obs_renderer = mj.Renderer(self.model, self.image_size[1], self.image_size[0])
+
+        # Update scene and render
+        self.obs_renderer.update_scene(self.data, camera=cam_id)
+        image = self.obs_renderer.render()
+
+        return image  # (H, W, 3) uint8
 
     def _get_paper_corners_world(self) -> np.ndarray:
         """Get paper corner positions in world frame."""
