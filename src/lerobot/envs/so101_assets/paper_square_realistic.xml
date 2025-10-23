@@ -51,6 +51,7 @@
     <mesh file="motor_holder_so101_wrist_v1.stl"/>
     <mesh file="sts3215_03a_no_horn_v1.stl"/>
     <mesh file="base_so101_v2.stl"/>
+    <mesh file="Wrist_Cam_Mount_32x32_UVC_Module_SO101_MIRRORED.stl" scale="0.001 0.001 0.001"/>
 
     <!-- Robot materials (White body with blue gripper) -->
     <material name="base_motor_holder_so101_v1_material" rgba="0.95 0.95 0.95 1"/>
@@ -66,6 +67,7 @@
     <material name="wrist_roll_pitch_so101_v2_material" rgba="0.95 0.95 0.95 1"/>
     <material name="wrist_roll_follower_so101_v1_material" rgba="0.2 0.5 0.9 1"/>
     <material name="moving_jaw_so101_v1_material" rgba="0.2 0.5 0.9 1"/>
+    <material name="camera_mount_material" rgba="0.2 0.5 0.9 1"/>
 
     <!-- Task environment materials -->
     <material name="matte_black" rgba="0.05 0.05 0.05 1" specular="0.0" shininess="0.0"/>
@@ -162,9 +164,9 @@
                 <!-- Part sts3215_03a_v1_5 -->
                 <geom type="mesh" class="visual" pos="0.0077 0.0001 -0.0234" quat="0.707107 -0.707107 1.66015e-15 6.45094e-15" mesh="sts3215_03a_v1" material="sts3215_03a_v1_material"/>
                 <geom type="mesh" class="collision" pos="0.0077 0.0001 -0.0234" quat="0.707107 -0.707107 1.66015e-15 6.45094e-15" mesh="sts3215_03a_v1" material="sts3215_03a_v1_material"/>
-                <!-- Part wrist_roll_follower_so101_v1 -->
-                <geom type="mesh" class="visual" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
-                <geom type="mesh" class="collision" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="wrist_roll_follower_so101_v1" material="wrist_roll_follower_so101_v1_material"/>
+                <!-- Part wrist_roll_follower_so101_v1 - REPLACED with camera mount -->
+                <geom type="mesh" class="visual" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="Wrist_Cam_Mount_32x32_UVC_Module_SO101_MIRRORED" material="camera_mount_material"/>
+                <geom type="mesh" class="collision" pos="8.32667e-17 -0.000218214 0.000949706" quat="0 1 0 0" mesh="Wrist_Cam_Mount_32x32_UVC_Module_SO101_MIRRORED" material="camera_mount_material"/>
 
                 <!-- Fixed jaw fingertip: sphere at extreme finger tip for paper tossing/pushing -->
                 <!-- VERY HIGH slide friction (μ=2.0) for firm grip on paper, low spin/roll for realistic physics -->
@@ -181,11 +183,12 @@
                       conaffinity="2"/>
 
                 <!-- Camera 2: Wrist-mounted camera for GR00T egocentric vision -->
-                <!-- Mounted on wrist_roll_follower (hex-nut recess mounting point) -->
+                <!-- Mounted on camera mount (on extension arm pointing toward workspace) -->
                 <!-- 140° FOV for wide-angle close-up manipulation view -->
+                <!-- Position adjusted for camera mount geometry: arm extends in -Y and angled down -->
                 <camera name="wrist_camera"
-                        pos="0 -0.02 0.01"
-                        euler="0 0.3 0"
+                        pos="0 -0.065 -0.015"
+                        euler="0 0.5 0"
                         fovy="140"/>
 
                 <!-- Frame gripperframe -->
