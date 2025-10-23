@@ -184,7 +184,7 @@
 
                 <!-- Camera 2: Wrist-mounted camera for GR00T egocentric vision -->
                 <!-- Precisely positioned at dodecagon lens hole center facing outward -->
-                <!-- 90° FOV for realistic close-up manipulation view with minimal distortion -->
+                <!-- 75° FOV matches typical UVC camera modules for realistic sim-to-real transfer -->
                 <!-- Position: At center of dodecagon lens hole (28mm diameter) -->
                 <!-- - Extracted from STL: hole center [2.5, -61.1, -11.1] mm in STL frame -->
                 <!-- - Position (gripper): [0.0025, 0.0609, 0.0120] m -->
@@ -199,7 +199,7 @@
                 <camera name="wrist_camera"
                         pos="0.0025 0.0609 0.0120"
                         axisangle="-0.235551 0.226805 0.945027 1.627308"
-                        fovy="90"/>
+                        fovy="75"/>
 
                 <!-- Frame gripperframe -->
                 <site group="3" name="gripperframe" pos="-0.0079 -0.000218121 -0.0981274" quat="0.707107 -0 0.707107 -2.37788e-17"/>
