@@ -46,7 +46,8 @@ print()
 # Step 2: Render top-view camera
 print("Step 2: Rendering top-view camera...")
 try:
-    renderer = mj.Renderer(model, height=480, width=640)
+    # GR00T expects 224x224 images
+    renderer = mj.Renderer(model, height=224, width=224)
     cam_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_CAMERA, "top_view")
 
     if cam_id < 0:
@@ -55,7 +56,7 @@ try:
         sys.exit(1)
 
     renderer.update_scene(data, camera=cam_id)
-    image = renderer.render()  # (480, 640, 3) uint8
+    image = renderer.render()  # (224, 224, 3) uint8
 
     print(f"✅ Image rendered: {image.shape}, dtype={image.dtype}, range=[{image.min()}, {image.max()}]")
 except Exception as e:
