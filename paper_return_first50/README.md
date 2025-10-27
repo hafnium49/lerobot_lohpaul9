@@ -24,8 +24,12 @@ paper_return_first50/
 │       └── episode_000049.parquet
 ├── videos/
 │   └── chunk-000/
-│       └── observation.images.main/
-│           ├── episode_000000.mp4  # Camera observations
+│       ├── observation.images.main/
+│       │   ├── episode_000000.mp4  # Top-view camera
+│       │   ├── ...
+│       │   └── episode_000049.mp4
+│       └── observation.images.secondary_0/
+│           ├── episode_000000.mp4  # Wrist camera
 │           ├── ...
 │           └── episode_000049.mp4
 └── meta/
