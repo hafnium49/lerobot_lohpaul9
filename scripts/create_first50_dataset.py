@@ -38,6 +38,7 @@ api = HfApi(token=HF_TOKEN)
 LOCAL_DIR.mkdir(exist_ok=True)
 (LOCAL_DIR / "data" / "chunk-000").mkdir(parents=True, exist_ok=True)
 (LOCAL_DIR / "videos" / "chunk-000" / "observation.images.main").mkdir(parents=True, exist_ok=True)
+(LOCAL_DIR / "videos" / "chunk-000" / "observation.images.secondary_0").mkdir(parents=True, exist_ok=True)
 (LOCAL_DIR / "meta").mkdir(parents=True, exist_ok=True)
 
 print("✅ Local directory structure created")
@@ -66,10 +67,10 @@ for i in tqdm(range(NUM_EPISODES), desc="Data files"):
 print(f"✅ Downloaded {len(data_files)} data files")
 print()
 
-# Step 2: Download video files (mp4)
-print("Step 2: Downloading video files (50 episodes)...")
-video_files = []
-for i in tqdm(range(NUM_EPISODES), desc="Video files"):
+# Step 2: Download video files (mp4) - Main camera
+print("Step 2: Downloading main camera video files (50 episodes)...")
+video_files_main = []
+for i in tqdm(range(NUM_EPISODES), desc="Main camera videos"):
     filename = f"episode_{i:06d}.mp4"
     repo_path = f"videos/chunk-000/observation.images.main/{filename}"
     local_path = LOCAL_DIR / "videos" / "chunk-000" / "observation.images.main" / filename
@@ -82,11 +83,34 @@ for i in tqdm(range(NUM_EPISODES), desc="Video files"):
             local_dir=LOCAL_DIR,
             local_dir_use_symlinks=False
         )
-        video_files.append(repo_path)
+        video_files_main.append(repo_path)
     except Exception as e:
         print(f"❌ Failed to download {repo_path}: {e}")
 
-print(f"✅ Downloaded {len(video_files)} video files")
+print(f"✅ Downloaded {len(video_files_main)} main camera video files")
+print()
+
+# Step 2b: Download video files (mp4) - Secondary camera (wrist)
+print("Step 2b: Downloading secondary camera video files (50 episodes)...")
+video_files_secondary = []
+for i in tqdm(range(NUM_EPISODES), desc="Secondary camera videos"):
+    filename = f"episode_{i:06d}.mp4"
+    repo_path = f"videos/chunk-000/observation.images.secondary_0/{filename}"
+    local_path = LOCAL_DIR / "videos" / "chunk-000" / "observation.images.secondary_0" / filename
+
+    try:
+        hf_hub_download(
+            repo_id=SOURCE_DATASET,
+            filename=repo_path,
+            repo_type="dataset",
+            local_dir=LOCAL_DIR,
+            local_dir_use_symlinks=False
+        )
+        video_files_secondary.append(repo_path)
+    except Exception as e:
+        print(f"❌ Failed to download {repo_path}: {e}")
+
+print(f"✅ Downloaded {len(video_files_secondary)} secondary camera video files")
 print()
 
 # Step 3: Download metadata files
@@ -138,8 +162,12 @@ paper_return_first50/
 │       └── episode_000049.parquet
 ├── videos/
 │   └── chunk-000/
-│       └── observation.images.main/
-│           ├── episode_000000.mp4  # Camera observations
+│       ├── observation.images.main/
+│       │   ├── episode_000000.mp4  # Top-view camera
+│       │   ├── ...
+│       │   └── episode_000049.mp4
+│       └── observation.images.secondary_0/
+│           ├── episode_000000.mp4  # Wrist camera
 │           ├── ...
 │           └── episode_000049.mp4
 └── meta/
@@ -237,7 +265,8 @@ print(f"Local copy: {LOCAL_DIR.absolute()}")
 print()
 print("Summary:")
 print(f"  - Data files: {len(data_files)}")
-print(f"  - Video files: {len(video_files)}")
+print(f"  - Main camera video files: {len(video_files_main)}")
+print(f"  - Secondary camera video files: {len(video_files_secondary)}")
 print(f"  - Metadata files: {len(downloaded_meta)}")
 print(f"  - Episodes: {NUM_EPISODES}")
 print("=" * 80)
