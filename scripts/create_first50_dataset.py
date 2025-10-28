@@ -134,6 +134,66 @@ for filename in tqdm(meta_files, desc="Metadata"):
 print(f"✅ Downloaded {len(downloaded_meta)} metadata files")
 print()
 
+# Step 3.5: Fix metadata to reflect only the first NUM_EPISODES episodes
+print("Step 3.5: Fixing metadata to match subset...")
+import json
+
+# Fix info.json
+if "info.json" in downloaded_meta:
+    info_path = LOCAL_DIR / "meta" / "info.json"
+    with open(info_path, 'r') as f:
+        info_data = json.load(f)
+
+    print(f"  Original total_episodes: {info_data.get('total_episodes', 'N/A')}")
+
+    # Calculate actual frame count from first NUM_EPISODES episodes
+    total_frames = 0
+    if "episodes.jsonl" in downloaded_meta:
+        episodes_path = LOCAL_DIR / "meta" / "episodes.jsonl"
+        with open(episodes_path, 'r') as f:
+            for i, line in enumerate(f):
+                if i >= NUM_EPISODES:
+                    break
+                episode = json.loads(line.strip())
+                if 'length' in episode:
+                    total_frames += episode['length']
+                elif 'frame_end' in episode and 'frame_start' in episode:
+                    total_frames += episode['frame_end'] - episode['frame_start']
+
+    # Update info.json
+    info_data['total_episodes'] = NUM_EPISODES
+    info_data['splits'] = {"train": f"0:{NUM_EPISODES}"}
+    if total_frames > 0:
+        info_data['total_frames'] = total_frames
+
+    with open(info_path, 'w') as f:
+        json.dump(info_data, f, indent=2)
+
+    print(f"  ✅ Updated total_episodes to: {NUM_EPISODES}")
+    print(f"  ✅ Updated splits to: {info_data['splits']}")
+    if total_frames > 0:
+        print(f"  ✅ Updated total_frames to: {total_frames}")
+
+# Fix episodes.jsonl - keep only first NUM_EPISODES episodes
+if "episodes.jsonl" in downloaded_meta:
+    episodes_path = LOCAL_DIR / "meta" / "episodes.jsonl"
+    episodes_content = []
+
+    with open(episodes_path, 'r') as f:
+        for i, line in enumerate(f):
+            if i >= NUM_EPISODES:
+                break
+            episodes_content.append(line.strip())
+
+    with open(episodes_path, 'w') as f:
+        for line in episodes_content:
+            f.write(line + '\n')
+
+    print(f"  ✅ Filtered episodes.jsonl to first {len(episodes_content)} episodes")
+
+print("✅ Metadata fixed to match subset")
+print()
+
 # Step 4: Create README
 print("Step 4: Creating README.md...")
 readme_content = f"""# Paper Return - First 50 Episodes (GR00T N1.5 Training Data)
