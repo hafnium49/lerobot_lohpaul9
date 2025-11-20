@@ -65,7 +65,11 @@ class GR00TBasePolicy:
         self.use_first_timestep = use_first_timestep
         self.action_convention = action_convention
         self.expected_action_dim = expected_action_dim
+        self.expected_action_dim = expected_action_dim
         self.invert_gripper = invert_gripper
+        
+        # Flag to indicate this policy requires image observations
+        self.requires_image = True
 
         # State tracking for delta conversion
         self.prev_action = None

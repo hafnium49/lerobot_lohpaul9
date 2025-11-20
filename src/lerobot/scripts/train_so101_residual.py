@@ -192,6 +192,11 @@ def train_residual_rl(args):
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
+    # Resolve device
+    if args.device == "auto":
+        args.device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {args.device}")
+
     # Create base policy
     base_policy_kwargs = {}
     if args.base_policy == "jacobian":

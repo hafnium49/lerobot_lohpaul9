@@ -659,8 +659,13 @@ class SO101ResidualEnv(gym.Env):
         base_action = np.zeros(self.n_joints)
         if self.base_policy is not None:
             try:
-                obs = self._get_obs()
-                base_action = self.base_policy(obs)
+                # Check if base policy requires image
+                if getattr(self.base_policy, "requires_image", False):
+                    image = self._render_camera_for_obs()
+                    base_action = self.base_policy(image)
+                else:
+                    obs = self._get_obs()
+                    base_action = self.base_policy(obs)
                 base_action = np.asarray(base_action, dtype=np.float32)
                 if base_action.shape != (self.n_joints,):
                     base_action = np.zeros(self.n_joints)
