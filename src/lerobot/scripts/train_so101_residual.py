@@ -200,6 +200,8 @@ def train_residual_rl(args):
             "kp_ori": args.jacobian_kp_ori,
             "max_delta": args.act_scale,
         }
+    elif args.base_policy == "il" and args.il_checkpoint:
+        base_policy_kwargs = {
             "checkpoint_path": args.il_checkpoint,
             "device": args.device,
         }
