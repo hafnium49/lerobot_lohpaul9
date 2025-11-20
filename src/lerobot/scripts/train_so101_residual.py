@@ -50,6 +50,7 @@ from lerobot.envs.so101_base_policy import (
     JacobianIKPolicy,
     ZeroPolicy,
 )
+from lerobot.policies.groot_base_policy import GR00TBasePolicy
 from lerobot.envs.so101_residual_env import SO101ResidualEnv
 
 # Load environment variables (including WANDB_API_KEY)
@@ -161,6 +162,12 @@ def create_base_policy(policy_type: str, **kwargs) -> BasePolicy:
             ZeroPolicy(),
         ]
         return HybridPolicy(policies, weights=[0.7, 0.3])
+    elif policy_type == "groot":
+        return GR00TBasePolicy(
+            model_path=kwargs.get("model_path", "phospho-app/gr00t-paper_return-7w9itxzsox"),
+            device=kwargs.get("device", "cuda"),
+            expected_action_dim=6,
+        )
     else:
         raise ValueError(f"Unknown policy type: {policy_type}")
 
@@ -193,9 +200,12 @@ def train_residual_rl(args):
             "kp_ori": args.jacobian_kp_ori,
             "max_delta": args.act_scale,
         }
-    elif args.base_policy == "il" and args.il_checkpoint:
-        base_policy_kwargs = {
             "checkpoint_path": args.il_checkpoint,
+            "device": args.device,
+        }
+    elif args.base_policy == "groot":
+        base_policy_kwargs = {
+            "model_path": args.groot_model,
             "device": args.device,
         }
 
@@ -405,8 +415,10 @@ def main():
 
     # Base policy arguments
     parser.add_argument("--base-policy", type=str, default="jacobian",
-                      choices=["jacobian", "zero", "il", "hybrid"],
+                      choices=["jacobian", "zero", "il", "hybrid", "groot"],
                       help="Type of base policy")
+    parser.add_argument("--groot-model", type=str, default="phospho-app/gr00t-paper_return-7w9itxzsox",
+                      help="HuggingFace model path for GR00T base policy")
     parser.add_argument("--il-checkpoint", type=str, default=None,
                       help="Path to IL policy checkpoint (if using IL base)")
     parser.add_argument("--jacobian-kp-xyz", type=float, default=0.5,
