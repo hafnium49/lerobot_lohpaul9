@@ -584,12 +584,13 @@ class SO101ResidualEnv(gym.Env):
         # Randomize initial paper position if enabled
         if self.randomize and hasattr(self, "np_random"):
             # Random paper position
-            paper_x = self.np_random.uniform(0.25, 0.35)
-            paper_y = self.np_random.uniform(-0.1, 0.1)
+            # Random paper position (centered on target [0.275, 0.175], doubled deviation)
+            paper_x = self.np_random.uniform(0.175, 0.375)
+            paper_y = self.np_random.uniform(0.075, 0.275)
             paper_z = 0.001
 
-            # Random paper orientation (small)
-            paper_yaw = self.np_random.uniform(-0.3, 0.3)
+            # Random paper orientation (isotropic)
+            paper_yaw = self.np_random.uniform(-np.pi, np.pi)
 
             # Get paper joint ID (free joint has 7 DOF: 3 pos + 4 quat)
             paper_joint_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_JOINT, "paper_free")
