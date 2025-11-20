@@ -31,6 +31,7 @@ def record_dual_camera_video(
     single_camera_size: tuple = (640, 480),
     seed: int = 42,
     separate_videos: bool = False,
+    device: str = "auto",
 ) -> None:
     """
     Record dual-camera video of GR00T controlling SO-101.
@@ -51,6 +52,7 @@ def record_dual_camera_video(
     print("Recording GR00T N1.5 Dual-Camera Control Video")
     print("=" * 80)
     print(f"Model: {model_path}")
+    print(f"Device: {device}")
     print(f"Output: {output_path}")
     print(f"Episodes: {n_episodes}")
     print(f"Max steps: {max_steps}")
@@ -66,6 +68,7 @@ def record_dual_camera_video(
         use_image_obs=True,
         image_size=(224, 224),
         camera_name_for_obs=camera_names[0],  # Use first camera for GR00T
+        base_camera_names=camera_names,      # Render distinct views for GR00T input
         seed=seed,
     )
     print(f"✅ Environment created")
@@ -82,7 +85,7 @@ def record_dual_camera_video(
     print(f"\nLoading GR00T policy...")
     policy = GR00TBasePolicy(
         model_path=model_path,
-        device="cuda",
+        device=device,
         expected_action_dim=6,
     )
     print(f"✅ GR00T policy loaded\n")
@@ -126,8 +129,10 @@ def record_dual_camera_video(
 
         for step in range(max_steps):
             # Get GR00T action
-            image = obs_dict["image"]
-            action = policy.predict(image)
+            base_images = env._render_base_cameras()
+            if not isinstance(base_images, list):
+                base_images = [base_images, base_images]  # ensure dual inputs
+            action = policy.predict(base_images)
 
             # Print progress
             if step % 50 == 0:
@@ -284,6 +289,12 @@ def main():
         default=42,
         help="Random seed",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        help="Device for GR00T inference (cpu, cuda, auto)",
+    )
 
     args = parser.parse_args()
 
@@ -297,6 +308,7 @@ def main():
         single_camera_size=(args.width, args.height),
         seed=args.seed,
         separate_videos=args.separate,
+        device=args.device,
     )
 
 

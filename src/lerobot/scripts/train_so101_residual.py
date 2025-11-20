@@ -102,6 +102,7 @@ def make_env(
     residual_penalty: float,
     randomize: bool,
     xml_path: Optional[Path] = None,
+    base_camera_names: Optional[tuple[str, ...]] = None,
 ):
     """
     Create a single environment instance.
@@ -116,6 +117,7 @@ def make_env(
         residual_penalty: L2 penalty for residual magnitude
         randomize: Enable domain randomization
         xml_path: Path to MuJoCo XML file
+        base_camera_names: Cameras to render for image-based base policy (e.g., GR00T dual views)
 
     Returns:
         Thunk that creates the environment
@@ -129,6 +131,7 @@ def make_env(
             residual_penalty=residual_penalty,
             randomize=randomize,
             seed=seed + rank,
+            base_camera_names=base_camera_names,
         )
         env = Monitor(env)
         return env
@@ -238,6 +241,7 @@ def train_residual_rl(args):
             "gamma": args.gamma,
             "gae_lambda": args.gae_lambda,
             "ent_coef": args.ent_coef,
+            "base_cameras": args.base_cameras,
         },
         sync_tensorboard=True,  # Also sync TensorBoard logs
         monitor_gym=True,
@@ -253,6 +257,7 @@ def train_residual_rl(args):
         "residual_penalty": args.residual_penalty,
         "randomize": True,
         "xml_path": args.xml_path,
+        "base_camera_names": tuple(args.base_cameras) if args.base_cameras else None,
     }
 
     if args.n_envs == 1:
@@ -432,6 +437,9 @@ def main():
                       help="Position gain for Jacobian IK")
     parser.add_argument("--jacobian-kp-ori", type=float, default=0.3,
                       help="Orientation gain for Jacobian IK")
+    parser.add_argument("--base-cameras", type=str, nargs="+",
+                      default=["top_view", "wrist_camera"],
+                      help="Camera names for base policy rendering (use two for distinct GR00T views)")
 
     # Residual RL arguments
     parser.add_argument("--alpha", type=float, default=0.5,

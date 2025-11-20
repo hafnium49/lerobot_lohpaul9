@@ -60,6 +60,21 @@ class GR00TBasePolicy:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = device
 
+        # If running on CPU, stub CUDA capability checks used by GR00T deps (flash-attn guard).
+        if self.device == "cpu":
+            torch.cuda.is_available = lambda: False  # type: ignore
+            torch.cuda.get_device_capability = lambda *_args, **_kwargs: (0, 0)  # type: ignore
+            # Force-disable flash attention paths that query CUDA devices.
+            try:
+                from transformers import modeling_utils
+                from transformers.utils import import_utils
+                import_utils.is_flash_attn_2_available = lambda: False  # type: ignore
+                modeling_utils.PreTrainedModel._check_and_enable_flash_attn_2 = classmethod(
+                    lambda cls, config, **kwargs: False  # type: ignore
+                )
+            except Exception:
+                pass
+
         # Configuration
         self.model_path = model_path
         self.use_first_timestep = use_first_timestep
@@ -172,7 +187,7 @@ class GR00TBasePolicy:
         Get base policy action from RGB image.
 
         Args:
-            image: RGB image (H, W, 3), numpy array, values in [0, 255]
+            image: Single RGB image (H, W, 3) or sequence/dict of two images for dual cameras
             current_qpos: Current joint positions (optional, needed for absolute→relative conversion)
 
         Returns:
@@ -185,13 +200,15 @@ class GR00TBasePolicy:
         # Prepare observation dict for GR00T policy
         # Fine-tuned model expects specific camera keys from training dataset
         try:
+            # Support single or dual camera inputs
+            img0, img1 = self._prepare_dual_images(image)
+
             # Create observation dict matching model's expected format
             # Model was trained with 'video.image_cam_0' and 'video.image_cam_1' keys
-            # We provide the same image for both cameras (single-camera setup)
             # Also need dummy state and action for transforms
             obs_dict = {
-                "video.image_cam_0": image[np.newaxis, ...],  # Add batch dim: (1, H, W, 3)
-                "video.image_cam_1": image[np.newaxis, ...],  # Duplicate for second camera
+                "video.image_cam_0": img0[np.newaxis, ...],  # Add batch dim: (1, H, W, 3)
+                "video.image_cam_1": img1[np.newaxis, ...],
                 "state.arm_0": np.zeros((1, 6), dtype=np.float32),  # Dummy state
                 "action.arm_0": np.zeros((1, 6), dtype=np.float32),  # Dummy action
             }
@@ -365,6 +382,31 @@ class GR00TBasePolicy:
     def __call__(self, image: np.ndarray, current_qpos: Optional[np.ndarray] = None) -> np.ndarray:
         """Callable interface for compatibility."""
         return self.predict(image, current_qpos)
+
+    @staticmethod
+    def _prepare_dual_images(image_input):
+        """
+        Normalize input into two images (cam0, cam1). If only one is provided, duplicate it.
+
+        Accepts:
+        - Single numpy array
+        - List/tuple of arrays
+        - Dict of arrays (insertion order preserved)
+        """
+        if isinstance(image_input, dict):
+            images = list(image_input.values())
+        elif isinstance(image_input, (list, tuple)):
+            images = list(image_input)
+        else:
+            images = [image_input]
+
+        if len(images) == 0:
+            raise ValueError("No images provided to GR00TBasePolicy")
+
+        img0 = images[0]
+        img1 = images[1] if len(images) > 1 else images[0]
+
+        return img0, img1
 
 
 # Example usage

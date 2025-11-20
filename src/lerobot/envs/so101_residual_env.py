@@ -61,6 +61,7 @@ class SO101ResidualEnv(gym.Env):
         use_image_obs: bool = False,
         image_size: tuple = (224, 224),
         camera_name_for_obs: str = "top_view",
+        base_camera_names: Optional[tuple[str, ...]] = None,
     ):
         """
         Initialize SO101 residual RL environment.
@@ -79,6 +80,7 @@ class SO101ResidualEnv(gym.Env):
             use_image_obs: Enable image observations (for GR00T base policy)
             image_size: Size of rendered images (H, W) for observations
             camera_name_for_obs: Camera name for image observations
+            base_camera_names: Cameras to render for base policy (supports dual views)
         """
         super().__init__()
 
@@ -109,6 +111,9 @@ class SO101ResidualEnv(gym.Env):
         self.image_size = image_size
         self.camera_name_for_obs = camera_name_for_obs
         self.obs_renderer = None  # Separate renderer for observations
+        # Cameras rendered for base policy (e.g., GR00T dual views)
+        self.base_camera_names = tuple(base_camera_names) if base_camera_names else None
+        self.base_renderers = {}  # Cache per-camera renderers
 
         # Get joint and body IDs
         self._setup_ids()
@@ -306,6 +311,26 @@ class SO101ResidualEnv(gym.Env):
         image = self.obs_renderer.render()
 
         return image  # (H, W, 3) uint8
+
+    def _render_base_cameras(self):
+        """Render camera views for the base policy (supports single or dual)."""
+        # No custom list -> reuse observation camera
+        camera_list = self.base_camera_names or (self.camera_name_for_obs,)
+
+        images = []
+        for cam_name in camera_list:
+            cam_id = mj.mj_name2id(self.model, mj.mjtObj.mjOBJ_CAMERA, cam_name)
+            if cam_name not in self.base_renderers:
+                self.base_renderers[cam_name] = mj.Renderer(
+                    self.model, self.image_size[1], self.image_size[0]
+                )
+            renderer = self.base_renderers[cam_name]
+            renderer.update_scene(self.data, camera=cam_id)
+            images.append(renderer.render())
+
+        if len(images) == 1:
+            return images[0]
+        return images
 
     def _get_paper_corners_world(self) -> np.ndarray:
         """Get paper corner positions in world frame."""
@@ -661,8 +686,8 @@ class SO101ResidualEnv(gym.Env):
             try:
                 # Check if base policy requires image
                 if getattr(self.base_policy, "requires_image", False):
-                    image = self._render_camera_for_obs()
-                    base_action = self.base_policy(image)
+                    base_images = self._render_base_cameras()
+                    base_action = self.base_policy(base_images)
                 else:
                     obs = self._get_obs()
                     base_action = self.base_policy(obs)
